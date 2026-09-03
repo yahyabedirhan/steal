@@ -206,14 +206,18 @@
         r.bottom <= window.innerHeight && r.right <= window.innerWidth;
       if (fullyVisible) return;
 
-      // scrollIntoView has no padding option, so scroll the window manually:
-      // land the target's top SCROLL_MARGIN_TOP px below the viewport top.
-      let dx = 0;
-      if (r.left < 0) dx = r.left - 8;
-      else if (r.right > window.innerWidth) dx = Math.min(r.left - 8, r.right - window.innerWidth + 8);
-      window.scrollBy({ top: r.top - SCROLL_MARGIN_TOP, left: dx, behavior: "auto" });
-      // Re-draw after the scroll settles.
-      requestAnimationFrame(drawOverlay);
+      // scrollIntoView walks up to the nearest scrollable ancestor (a plain
+      // window.scrollBy would miss elements inside a scroll container). A
+      // temporary scroll-margin-top gives the 96px gap above the target that
+      // scrollIntoView otherwise has no option for.
+      const el = target;
+      const prevMargin = el.style.scrollMarginTop;
+      el.style.scrollMarginTop = SCROLL_MARGIN_TOP + "px";
+      el.scrollIntoView({ block: "start", inline: "nearest" });
+      requestAnimationFrame(() => {
+        el.style.scrollMarginTop = prevMargin;
+        drawOverlay();
+      });
     }
 
     function onScrollOrResize() {
@@ -249,7 +253,7 @@
       notify("inspect:started");
     }
 
-    function stop(_reason) {
+    function stop(reason) {
       if (!active) return;
       active = false;
 
@@ -257,11 +261,21 @@
       document.documentElement.classList.remove("ic-active");
       target = null;
 
-      // Keep the root around briefly so a "Copied" toast can finish animating.
       const root = ui && ui.root;
       ui = null;
       if (root) {
-        setTimeout(() => root.remove(), 1600);
+        if (reason === "copied") {
+          // A "Copied" toast is animating inside root. Drop the picker chrome
+          // now, then remove the whole node once the toast has faded.
+          for (const sel of [".ic-overlay", ".ic-label"]) {
+            const n = root.querySelector(sel);
+            if (n) n.style.display = "none";
+          }
+          setTimeout(() => root.remove(), 1600);
+        } else {
+          // Esc / toggle-off: nothing to wait for, remove immediately.
+          root.remove();
+        }
       }
 
       notify("inspect:ended");
