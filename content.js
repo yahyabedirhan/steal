@@ -200,28 +200,37 @@
       }
     }
 
-    // Space to leave above a target that we scroll into view, so it never lands
-    // flush against the top edge (or under a fixed page header).
-    const SCROLL_MARGIN_TOP = 96;
+    // Breathing room to leave between a scrolled-to target and the viewport
+    // edge it lands against (also keeps it clear of a fixed page header).
+    const SCROLL_MARGIN = 96;
 
     function scrollTargetIntoView() {
       if (!target) return;
       const r = target.getBoundingClientRect();
-      const fullyVisible =
-        r.top >= SCROLL_MARGIN_TOP && r.left >= 0 &&
-        r.bottom <= window.innerHeight && r.right <= window.innerWidth;
-      if (fullyVisible) return;
+      const vh = window.innerHeight;
+      const above = r.top < SCROLL_MARGIN;
+      const below = r.bottom > vh - SCROLL_MARGIN;
+      const offSide = r.left < 0 || r.right > window.innerWidth;
+      if (!above && !below && !offSide) return;
 
       // scrollIntoView walks up to the nearest scrollable ancestor (a plain
-      // window.scrollBy would miss elements inside a scroll container). A
-      // temporary scroll-margin-top gives the 96px gap above the target that
-      // scrollIntoView otherwise has no option for.
+      // window.scrollBy would miss elements inside a scroll container).
+      // scroll-margin gives it the gap it otherwise has no option for.
+      // Align to whichever edge the target went past so the page keeps its
+      // natural scroll direction; if the target is taller than the viewport,
+      // fall back to aligning its top.
+      const tallerThanViewport = r.height + SCROLL_MARGIN * 2 > vh;
+      const toEnd = below && !above && !tallerThanViewport;
+
       const el = target;
-      const prevMargin = el.style.scrollMarginTop;
-      el.style.scrollMarginTop = SCROLL_MARGIN_TOP + "px";
-      el.scrollIntoView({ block: "start", inline: "nearest" });
+      const prevTop = el.style.scrollMarginTop;
+      const prevBottom = el.style.scrollMarginBottom;
+      el.style.scrollMarginTop = SCROLL_MARGIN + "px";
+      el.style.scrollMarginBottom = SCROLL_MARGIN + "px";
+      el.scrollIntoView({ block: toEnd ? "end" : "start", inline: "nearest" });
       requestAnimationFrame(() => {
-        el.style.scrollMarginTop = prevMargin;
+        el.style.scrollMarginTop = prevTop;
+        el.style.scrollMarginBottom = prevBottom;
         drawOverlay();
       });
     }
