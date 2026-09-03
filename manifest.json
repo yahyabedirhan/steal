@@ -7,8 +7,17 @@
   "background": {
     "service_worker": "background.js"
   },
+  "commands": {
+    "toggle-steal": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "Toggle Steal inspect mode on the current tab"
+    }
+  },
   "action": {
-    "default_title": "Steal — click to grab an element's HTML",
+    "default_title": "Steal — click (or Alt+Shift+S) to grab an element's HTML",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

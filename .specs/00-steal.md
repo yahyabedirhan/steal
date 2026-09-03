@@ -29,7 +29,7 @@ off.
 
 ## User Stories
 
-1. As a user, I want to toggle inspect mode from the extension's toolbar icon, so that I do not need to open DevTools.
+1. As a user, I want to toggle inspect mode from the extension's toolbar icon or a keyboard shortcut, so that I do not need to open DevTools or reach for the mouse.
 2. As a user, I want the toolbar icon to show an `ON` badge while inspect mode is active, so that I can tell at a glance whether it is running.
 3. As a user, I want clicking the toolbar icon again to turn inspect mode off, so that I can cancel without selecting anything.
 4. As a user, I want inspect mode to apply only to the tab I activated it on, so that other tabs are unaffected.
@@ -72,14 +72,16 @@ off.
 ### Permissions
 
 - `activeTab` and `scripting` only.
-- No declared content scripts and no host permissions in the manifest. `content.css`, `lib/dom-nav.js`, and `content.js` are injected on demand with `chrome.scripting` when the user clicks the toolbar icon.
+- No declared content scripts and no host permissions in the manifest. `content.css`, `lib/dom-nav.js`, and `content.js` are injected on demand with `chrome.scripting` on activation. The `commands` key adds a keyboard shortcut and needs no permission.
 
 ### Activation and lifecycle
 
-- The toolbar icon (an `action` with no popup) is the only entry point. Its click is handled in the service worker.
-- On click, the service worker injects the stylesheet and scripts into the active tab (a repeat injection is harmless), then sends a message toggling inspect mode. That message is the single source of truth for on/off state.
+- Two entry points, both handled in the service worker and routed through one `toggleOnTab(tab)` function:
+  - The toolbar icon (an `action` with no popup) — `chrome.action.onClicked`.
+  - A keyboard command `toggle-steal`, default **Alt+Shift+S** — `chrome.commands.onCommand`. Chrome forbids a bare `Shift+S` for extension commands (a `Ctrl`/`Alt` modifier is mandatory), and the user rebinds it at `chrome://extensions/shortcuts`. The `commands` manifest key needs no permission. The listener falls back to `chrome.tabs.query({ active: true, lastFocusedWindow: true })` on older Chrome that does not pass the tab.
+- `toggleOnTab` injects the stylesheet and scripts into the tab (a repeat injection is harmless), then sends a message toggling inspect mode. That message is the single source of truth for on/off state.
 - While inspect mode is active on a tab, the service worker sets an `ON` badge on the action for that tab, and clears it when inspect mode ends by any route.
-- Inspect mode ends on a successful copy, an Esc keypress, or another toolbar icon click. The content script notifies the service worker on start and end so the badge stays in sync; the notify call is wrapped so a stale (reloaded) extension context fails quietly.
+- Inspect mode ends on a successful copy, an Esc keypress, or another toggle (icon or shortcut). The content script notifies the service worker on start and end so the badge stays in sync; the notify call is wrapped so a stale (reloaded) extension context fails quietly.
 - The content script guards against double-initialization: once loaded, a re-injection bails immediately and the toggle message drives everything.
 
 ### Selection model

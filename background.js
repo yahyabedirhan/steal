@@ -25,7 +25,7 @@ async function ensureInjected(tabId) {
   });
 }
 
-chrome.action.onClicked.addListener(async (tab) => {
+async function toggleOnTab(tab) {
   if (!tab || tab.id == null) return;
   const tabId = tab.id;
   try {
@@ -36,6 +36,20 @@ chrome.action.onClicked.addListener(async (tab) => {
     // where content scripts cannot run.
     console.warn("Steal: cannot run on this page.", e);
   }
+}
+
+// Toolbar icon.
+chrome.action.onClicked.addListener((tab) => toggleOnTab(tab));
+
+// Keyboard shortcut (default Alt+Shift+S, rebindable at
+// chrome://extensions/shortcuts). Chrome passes the active tab on newer
+// versions; fall back to querying it.
+chrome.commands.onCommand.addListener(async (command, tab) => {
+  if (command !== "toggle-steal") return;
+  if (!tab) {
+    [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  }
+  toggleOnTab(tab);
 });
 
 chrome.runtime.onMessage.addListener((msg, sender) => {

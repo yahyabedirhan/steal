@@ -6,8 +6,8 @@ it only touches your clipboard.
 
 ## Use
 
-1. Click the **Steal** toolbar icon. An `ON` badge appears and the page
-   shows a crosshair cursor.
+1. Click the **Steal** toolbar icon, or press **Alt+Shift+S**. An `ON` badge
+   appears and the page shows a crosshair cursor.
 2. Move the mouse. The element under the cursor is highlighted with a blue box
    and a `tag#id.class` label.
 3. Fine-tune without the mouse using the arrow keys:
@@ -20,7 +20,12 @@ it only touches your clipboard.
    lands on `<body>`.
 4. **Click** the element, or press **Enter**, to copy its `outerHTML`. A small
    toast confirms, and inspect mode turns off.
-5. Press **Esc** or click the toolbar icon again to leave without copying.
+5. Press **Esc**, hit the shortcut again, or click the toolbar icon to leave
+   without copying.
+
+Chrome does not allow a bare `Shift+S` for extension shortcuts (a `Ctrl` or
+`Alt` modifier is required), so the default is **Alt+Shift+S**. Rebind it at
+`chrome://extensions/shortcuts`.
 
 Moving the mouse always re-selects whatever is under the cursor, discarding any
 arrow-key traversal.
