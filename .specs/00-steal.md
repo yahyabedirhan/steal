@@ -1,9 +1,10 @@
 # 00 - Steal
 
-Status: decided, not yet implemented
-Date: 2026-09-03
+Status: implemented
+Last updated: 2026-09-03
 
-A written record of the design decisions made in conversation before implementation starts.
+The specification of the Steal extension as it currently stands. This is the
+current design, not a change log; history is in git.
 
 ## Problem Statement
 
@@ -13,15 +14,18 @@ DevTools, use the element picker, find the node in the Elements panel, right-cli
 it, and choose Copy > Copy element. I want a one-key way to point at an element on
 the page and get its HTML onto my clipboard.
 
+The name is a joke. The extension only ever writes to the clipboard; it sends
+nothing anywhere.
+
 ## Solution
 
-A small Chrome extension. I click its toolbar icon to turn on "inspect mode" for
-the current tab. As I move the mouse, the element under the cursor is highlighted
-with a translucent overlay and a label telling me what it is. I can also nudge the
-current selection around the DOM tree with the arrow keys without moving the
-mouse. When I click the element, or press Enter, its raw `outerHTML` is copied to
-the clipboard, a small toast confirms what was copied, and inspect mode turns
-itself off.
+A small Chrome extension. Click its toolbar icon to turn on "inspect mode" for
+the current tab. As the mouse moves, the element under the cursor is highlighted
+with a translucent overlay and a label naming it. The current selection can also
+be nudged around the DOM tree with the arrow keys without moving the mouse.
+Clicking the element, or pressing Enter, copies its raw `outerHTML` to the
+clipboard, a small toast confirms what was copied, and inspect mode turns itself
+off.
 
 ## User Stories
 
@@ -30,31 +34,31 @@ itself off.
 3. As a user, I want clicking the toolbar icon again to turn inspect mode off, so that I can cancel without selecting anything.
 4. As a user, I want inspect mode to apply only to the tab I activated it on, so that other tabs are unaffected.
 5. As a user, I want the element under my cursor to be highlighted with a translucent overlay matching its bounding box, so that I can see exactly what will be copied.
-6. As a user, I want a floating label showing the element's tag name, its id, and its classes, so that I can confirm I have the right element.
+6. As a user, I want a floating label showing the element's tag name, id, classes, and pixel dimensions, so that I can confirm I have the right element.
 7. As a user, I want the highlight overlay to not intercept my mouse, so that moving the cursor still reflects the true element underneath.
 8. As a user, I want only one element selected at any time, so that the interaction stays simple.
 9. As a user, I want to press the Up arrow to move the selection to the previous element sibling, or to the parent when there is no previous sibling, so that Up always steps somewhere sensible.
 10. As a user, I want to press the Down arrow to move the selection to the next element sibling, or, when the current element has none, to the nearest following element of an ancestor, so that a lone child still steps forward instead of dead-ending.
 11. As a user, I want to press the Left arrow to move the selection to the parent element, so that I can widen the selection to a container.
 12. As a user, I want to press the Right arrow to move the selection to the first element child, so that I can narrow into a container.
-13. As a user, I want arrow traversal to skip text and comment nodes and only land on element nodes, so that the selection is always something copyable.
-13a. As a user, I want arrow traversal to skip document-metadata elements (`head`, `meta`, `title`, `script`, `link`, `style`, `base`, `noscript`) and the extension's own overlay, so that pressing Right on `html` lands on `body` and I never end up inside `head`.
-14. As a user, I want arrow presses at the edges of the tree to do nothing (no wrap-around), so that I do not lose my place unexpectedly.
-15. As a user, I want the selected element to scroll into view when arrow navigation lands on something offscreen, so that I can always see the highlight.
-16. As a user, I want the arrow keys and Space to not scroll the page while inspect mode is active, so that navigation and scrolling do not fight each other.
-17. As a user, I want moving the mouse again to immediately re-select the element under the cursor and discard any keyboard traversal state, so that the mouse is always authoritative when I use it.
-18. As a user, I want to click the highlighted element to copy it, so that the interaction matches how I already point at things.
-19. As a user, I want to press Enter to copy the current selection, so that I can finish a keyboard-only traversal without reaching for the mouse.
-20. As a user, I want my click to be fully suppressed on the page (no link navigation, no button activation), so that inspecting never triggers the page's own behavior.
-21. As a user, I want the element's raw `outerHTML` copied exactly as it appears in the DOM, so that I get the same thing DevTools "Copy element" gives me.
-22. As a user, I want a small toast at my cursor position confirming the copy, showing the tag, id, and classes of what was copied, so that I have immediate feedback.
-23. As a user, I want the toast to fade away on its own after about a second, so that it does not get in my way.
-24. As a user, I want inspect mode to turn itself off after a successful copy, so that the page returns to normal without another step.
-25. As a user, I want to press Esc to leave inspect mode without copying anything, so that I can back out at any time.
-26. As a user, I want the extension's own overlay, label, and toast to never be selectable or copyable, so that I only ever get real page content.
-27. As a user, I want the extension to ask for as few permissions as possible, so that I am comfortable running it.
-28. As a user, I want to load the extension into Chrome myself as an unpacked extension, so that I can use it without publishing it anywhere.
-29. As a user, I want clear instructions for loading and reloading the extension, so that I can install it and pick up changes.
+13. As a user, I want arrow traversal to land only on element nodes, skipping text and comment nodes, so that the selection is always something copyable.
+14. As a user, I want arrow traversal to skip document-metadata elements (`head`, `meta`, `title`, `script`, `link`, `style`, `base`, `noscript`) and the extension's own overlay, so that pressing Right on `html` lands on `body` and I never end up inside `head`.
+15. As a user, I want arrow presses at the edges of the tree to do nothing (no wrap-around), so that I do not lose my place unexpectedly.
+16. As a user, I want the selected element scrolled into view when arrow navigation lands on something offscreen, aligned to whichever edge it went past with a small margin, so that the page keeps its natural scroll direction and the highlight stays visible.
+17. As a user, I want the arrow keys and Space to not scroll the page while inspect mode is active, so that navigation and scrolling do not fight each other.
+18. As a user, I want moving the mouse again to immediately re-select the element under the cursor and discard any keyboard traversal state, so that the mouse is always authoritative when I use it.
+19. As a user, I want to click the highlighted element to copy it, so that the interaction matches how I already point at things.
+20. As a user, I want to press Enter to copy the current selection, so that I can finish a keyboard-only traversal without reaching for the mouse.
+21. As a user, I want my click fully suppressed on the page (no link navigation, no button activation), so that inspecting never triggers the page's own behavior.
+22. As a user, I want the element's raw `outerHTML` copied exactly as it appears in the DOM, so that I get the same thing DevTools "Copy element" gives me.
+23. As a user, I want a small toast at my cursor position confirming the copy and naming what was copied, so that I have immediate feedback.
+24. As a user, I want the toast to fade away on its own after about a second, so that it does not get in my way.
+25. As a user, I want inspect mode to turn itself off after a successful copy, so that the page returns to normal without another step.
+26. As a user, I want to press Esc to leave inspect mode without copying anything, and have the overlay disappear immediately, so that I can back out cleanly at any time.
+27. As a user, I want the extension's own overlay, label, and toast to never be selectable or copyable, so that I only ever get real page content.
+28. As a user, I want the extension to ask for as few permissions as possible, so that I am comfortable running it.
+29. As a user, I want to load the extension into Chrome myself as an unpacked extension, so that I can use it without publishing it anywhere.
+30. As a user, I want clear instructions for loading and reloading the extension, so that I can install it and pick up changes.
 
 ## Implementation Decisions
 
@@ -62,156 +66,146 @@ itself off.
 
 - Chrome Manifest V3 extension.
 - Plain JavaScript, HTML, and CSS. No bundler, no TypeScript, no build step. The source files are the shipped files.
-- Components: `manifest.json`, a service worker (`background.js`), a content script (`content.js`), a content stylesheet (`content.css`), and generated icon PNGs at 16, 48, and 128 px.
-- Icons are a simple generated crosshair/target glyph, treated as placeholder art.
+- Files: `manifest.json`, a service worker (`background.js`), a content script (`content.js`), a content stylesheet (`content.css`), the pure DOM helpers (`lib/dom-nav.js`), and icon PNGs at 16, 48, and 128 px.
+- Icons are a generated crosshair-snatching-a-bracket glyph (a pointer cursor lifting a `< >` pair with a motion streak), produced by `tools/gen-icons.py` — pure standard library, 4x supersampled. Placeholder art, swappable later.
 
 ### Permissions
 
 - `activeTab` and `scripting` only.
-- No declared content scripts and no host permissions in the manifest. The content script and stylesheet are injected on demand with `chrome.scripting` when the user clicks the toolbar icon.
+- No declared content scripts and no host permissions in the manifest. `content.css`, `lib/dom-nav.js`, and `content.js` are injected on demand with `chrome.scripting` when the user clicks the toolbar icon.
 
 ### Activation and lifecycle
 
 - The toolbar icon (an `action` with no popup) is the only entry point. Its click is handled in the service worker.
-- On click, the service worker injects `content.css` and `content.js` into the active tab (if not already injected) and sends a message toggling inspect mode.
-- While inspect mode is active on a tab, the service worker sets an `ON` badge on the action for that tab. The badge is cleared when inspect mode ends, by any route.
-- Inspect mode ends on: a successful copy, an Esc keypress, or another toolbar icon click. The content script notifies the service worker so the badge stays in sync.
-- Injecting a second time into a tab that already has the content script must not create duplicate listeners or overlays. The content script guards against double-initialization; repeat activations just toggle a flag.
+- On click, the service worker injects the stylesheet and scripts into the active tab (a repeat injection is harmless), then sends a message toggling inspect mode. That message is the single source of truth for on/off state.
+- While inspect mode is active on a tab, the service worker sets an `ON` badge on the action for that tab, and clears it when inspect mode ends by any route.
+- Inspect mode ends on a successful copy, an Esc keypress, or another toolbar icon click. The content script notifies the service worker on start and end so the badge stays in sync; the notify call is wrapped so a stale (reloaded) extension context fails quietly.
+- The content script guards against double-initialization: once loaded, a re-injection bails immediately and the toggle message drives everything.
 
 ### Selection model
 
 - Exactly one "current target" element at a time, held in the content script.
-- `mousemove` sets the current target to `document.elementFromPoint` at the cursor, and clears any keyboard traversal state. The mouse is authoritative whenever it moves.
+- `mousemove` sets the current target to `document.elementFromPoint` at the cursor and discards any keyboard traversal state. The mouse is authoritative whenever it moves.
 - Arrow keys move the current target relative to its present value:
-  - Up: previous element sibling; if there is none, the parent element. No-op only at `<html>`.
-  - Down: next element sibling; if there is none, walk up the ancestor chain and take the first ancestor's next element sibling. No-op only when nothing follows anywhere.
-  - Left: parent element, stopping at `<html>` (never `document` or above), or no-op.
-  - Right: first element child, or no-op on a leaf.
-- Traversal considers element nodes only; text and comment nodes are never targets. It also skips document-metadata tags (`head`, `meta`, `title`, `script`, `link`, `style`, `base`, `noscript`) and the extension's own overlay container, in every direction. So Right on `<html>` skips `<head>` and lands on `<body>`, and Up from `<body>` skips the `<head>` subtree and lands on `<html>`.
-- The traversal logic is a pure function, `nextTarget(node, direction, skip)`, in `lib/dom-nav.js`; the content script passes a `skip` predicate that combines the default metadata check with an "is this our own overlay" check.
+  - **Up** — previous element sibling; if there is none, the parent element. No-op only at `<html>`.
+  - **Down** — next element sibling; if there is none, walk up the ancestor chain and take the first ancestor that has a next element sibling. No-op only when nothing follows anywhere.
+  - **Left** — parent element. Stops at `<html>` (`parentElement` is null above it).
+  - **Right** — first element child. No-op on a leaf.
+- Traversal lands on element nodes only. It also skips, in every direction, the document-metadata tags `head`, `meta`, `title`, `script`, `link`, `style`, `base`, `noscript`, and the extension's own overlay container. So Right on `<html>` skips `<head>` and lands on `<body>`, and Up from `<body>` skips the `<head>` subtree and lands on `<html>`.
+- The traversal logic is a pure function, `nextTarget(node, direction, skip)`, in `lib/dom-nav.js`. `lib/dom-nav.js` also exports `describeElement` (the label string) and `isSkippable` (the default metadata check). The content script passes a `skip` predicate that combines `isSkippable` with an "is this our own overlay" check.
 - No wrap-around at any edge.
-- After an arrow move, if the new target is not fully within the viewport minus a 96 px inset on the top and bottom, bring it into view via `scrollIntoView` on the nearest scrollable ancestor, with a temporary 96 px `scroll-margin` so it never lands flush against the edge (this also keeps it clear of a fixed page header). It aligns to whichever edge the target went past, so the page keeps its natural scroll direction: a target below the fold is bottom-aligned, a target above is top-aligned. A target taller than the viewport always aligns to its top. `inline: "nearest"` handles the horizontal axis.
-- `keydown` for the four arrows and for Space calls `preventDefault()` while inspect mode is active, so the page does not scroll.
-- The extension's own DOM nodes (overlay, label, toast, and their container) carry a marker and are excluded from selection. When `elementFromPoint` returns one of them, it is ignored. The overlay and label are also `pointer-events: none`, which prevents this in the common case; the marker check covers the rest.
+- After an arrow move, if the new target is not fully inside the viewport minus a 96 px inset on top and bottom, it is brought into view with `scrollIntoView` on the nearest scrollable ancestor (a plain `window.scrollBy` would miss elements inside a scroll container). A temporary 96 px `scroll-margin` on the target keeps it off the viewport edge and clear of any fixed page header; the inline styles are restored on the next frame. It aligns to whichever edge the target went past — a target below the fold is bottom-aligned, a target above is top-aligned — so the page keeps its natural scroll direction. A target taller than the viewport always aligns to its top. `inline: "nearest"` handles the horizontal axis.
+- `keydown` for the four arrows and for Space calls `preventDefault()` while inspect mode is active, so the page does not scroll. Space does nothing else.
 
 ### Highlight overlay and label
 
-- A single container element appended to `document.body` (or `documentElement` if there is no body), holding the overlay box, the label, and later the toast.
-- The overlay is a positioned box whose rect is updated from `target.getBoundingClientRect()` on every target change and on scroll/resize while active. Translucent fill plus a solid border. `pointer-events: none`.
-- The label is a small floating box positioned near the overlay showing `tagname#id.class1.class2` built from the target, followed by its rounded pixel dimensions. If the element has no id or classes, just the tag name and dimensions. The label flips to stay on screen when the target is near the top edge.
-- All extension UI uses a very high `z-index` and its own class namespace to avoid clashing with page styles. Styles are scoped and defensive (explicit values, no reliance on inheritance).
+- A single container element (a marked `<div>` with a very high `z-index`) is appended to `document.body`, or `documentElement` if there is no body, holding the overlay box, the label, and the toast.
+- The overlay is a fixed-position box whose rect is updated from `target.getBoundingClientRect()` on every target change and on scroll/resize while active. Translucent fill plus a solid border. `pointer-events: none`.
+- The label is a small floating box near the overlay showing `tagname#id.class1.class2` (just the tag name when there is no id or class) followed by the target's rounded pixel dimensions. It sits just above the box, flipping to just below when the target is near the top edge.
+- All extension UI is `all: initial`-reset, scoped to the container's id, and given explicit values so page styles cannot bleed in and its styles cannot leak out.
 
 ### Copy
 
 - Copy is triggered by a capture-phase `click` on the current target, or by `Enter` in `keydown`.
-- To suppress the page's reaction to the click, the content script listens in the capture phase for `mousedown`, `mouseup`, and `click` while active, and calls `preventDefault()` and `stopPropagation()` (and `stopImmediatePropagation()`) on them. The copy is performed from the `click` (or `mousedown`) handler.
+- To suppress the page's reaction, the content script listens in the capture phase for `mousedown`, `mouseup`, and `click` while active and calls `preventDefault()`, `stopPropagation()`, and `stopImmediatePropagation()` on each. The copy runs from the `click` handler (or directly on `Enter`).
 - The copied text is `target.outerHTML`, unmodified.
-- Clipboard write: `navigator.clipboard.writeText(html)`. This is allowed because the copy happens inside a user-gesture handler. On failure or absence, fall back to creating an off-screen `<textarea>`, selecting it, and calling `document.execCommand('copy')`.
-- On a successful write: show the toast, then end inspect mode (remove listeners, remove the overlay container after the toast finishes, clear the badge).
-- On a failed write (both methods): show an error toast and leave inspect mode active so the user can retry.
+- Clipboard write: `navigator.clipboard.writeText(html)`, which is allowed because the copy runs inside a user-gesture handler. On failure or absence, it falls back to an off-screen `<textarea>` plus `document.execCommand('copy')`.
+- On success: show the toast, hide the overlay and label immediately, then end inspect mode, removing the container once the toast has faded (~1.6 s).
+- On failure (both methods): show an error toast and leave inspect mode active so the user can retry.
+- If the user leaves inspect mode (Esc) while an async clipboard write is in flight, the copy is abandoned without a toast.
 
 ### Toast
 
-- Appended inside the extension container. Positioned at the pointer location for a mouse copy, or near the current target for an Enter copy.
-- Content: `✓ Copied ` followed by the same `tag#id.class` string used in the label.
-- Fades out via a CSS transition after roughly 1.2 s, then is removed from the DOM.
-- The toast is `pointer-events: none` and never selectable.
+- Appended inside the extension container at the pointer location for a mouse copy, or near the current target for an Enter copy, clamped into the viewport.
+- Content: `✓ Copied ` (or `✕ ` on error) followed by the same `tag#id.class` string used in the label.
+- Fades in, holds ~1.2 s, fades out, and is removed from the DOM.
+- `pointer-events: none` and never selectable.
+
+### Exit
+
+- On a successful copy the overlay and label are hidden at once and the container is removed after the toast finishes.
+- On Esc or a toolbar-icon toggle-off there is nothing to wait for, so the container is removed synchronously and the overlay disappears immediately.
 
 ### Messaging
 
-- `background.js` <-> `content.js` over `chrome.runtime` messages.
-- Message types (names indicative, not binding): toggle inspect mode (background to content), inspect mode started / inspect mode ended (content to background, for badge sync).
-- The service worker keeps per-tab active state keyed by tab id so the badge is correct when the user switches tabs. State is cleared on tab close and on navigation (the injected script does not survive a page load, so a fresh activation is required after navigating).
+- `background.js` <-> `content.js` over `chrome.runtime` messages: toggle (background to content), and started / ended (content to background, for badge sync). Names are indicative, not a contract.
+- The service worker keeps per-tab active state keyed by tab id so the badge is correct across tab switches. State is cleared on tab close and when a tab starts loading (the injected script does not survive a navigation, so a fresh activation is needed afterward).
 
 ## Testing Decisions
 
-This is a small, DOM- and browser-API-heavy extension with no existing test
-suite and no build tooling. A good test here exercises externally observable
-behavior (what ends up on the clipboard, which element is highlighted, whether
-inspect mode is on) and not the internal shape of the content script.
+A good test here exercises externally observable behavior (what lands on the
+clipboard, which element is highlighted, whether inspect mode is on) and not the
+internal shape of the content script.
 
-- Primary verification is manual, against a checklist derived from the user
-  stories, using the local unpacked extension in Chrome. This is the highest and
-  only natural seam for the click-suppression and clipboard-gesture behavior,
-  which cannot be reproduced faithfully outside a real browser.
-- The one piece worth isolating as a pure function is DOM traversal: given a
-  node and a direction (up/down/left/right), return the next target or null.
-  This has clear inputs and outputs, all the edge cases (no sibling, parent is
-  `<html>`, leaf node, text nodes interleaved), and no browser APIs beyond
-  standard DOM. If a test runner is added later, it is tested with jsdom by
-  building a small fixture tree and asserting the returned node for each
-  direction from several starting points. Until then it is structured as a
-  standalone function so it stays trivially testable.
-- The `tag#id.class` label/toast string builder is likewise a pure function of
-  an element and is checked the same way (element with id and classes, id only,
-  classes only, neither).
-- No prior art in this repo; this is a new standalone project.
+- **Pure logic** in `lib/dom-nav.js` is unit-tested in `test/dom-nav.test.js`
+  with Node's built-in runner (`npm test` → `node --test`, zero dependencies).
+  Fixtures build a fake element tree — a full `<html>` with a `<head>` subtree —
+  and assert the result of `nextTarget` for every direction from many starting
+  points, covering the edge cases: no sibling, parent is `<html>`, leaf node,
+  lone-child gap-jump, metadata skipping, custom skip predicate. `describeElement`
+  and `isSkippable` are checked the same way.
+- **Everything else** is verified manually against a checklist derived from the
+  user stories, using the local unpacked extension in Chrome. Click-suppression
+  and the clipboard user-gesture rule cannot be reproduced faithfully outside a
+  real browser, so this is the only honest seam for them.
+- No prior art in this repo; this is a standalone project.
 
 ## Deployment
 
-"Deploy" here means getting the extension into my own Chrome. There is no server
-and nothing is published.
+"Deploy" means getting the extension into my own Chrome. There is no server and
+nothing is published.
 
-### Local unpacked install (the primary method)
+### Local unpacked install
 
 1. Open `chrome://extensions`.
 2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked** and select the
-   `personal-projects/steal/` folder.
-4. The extension appears with its crosshair icon. Pin it from the puzzle-piece
-   menu so the toolbar icon is always visible.
+3. Click **Load unpacked** and select the `personal-projects/steal/` folder.
+4. Pin the crosshair icon from the puzzle-piece menu.
 
 ### Picking up changes
 
-- After editing any file, return to `chrome://extensions` and click the reload
-  (circular arrow) icon on the extension's card.
-- Reload the target web page too, because the content script is injected fresh
-  each activation and old injected code does not update in an already-open page.
-- Changes to `background.js` take effect on the extension reload; changes to
-  `content.js` / `content.css` take effect on the next activation in a tab.
+- After editing any file, click the reload (circular arrow) icon on the
+  extension's card in `chrome://extensions`.
+- Reload the target web page too: the content script is injected fresh each
+  activation and does not hot-update an already-open page.
+- `background.js` changes take effect on the extension reload; `content.js` /
+  `content.css` / `lib/dom-nav.js` changes take effect on the next activation in
+  a tab.
+- After editing `manifest.json`, a plain reload is sometimes not enough — remove
+  the entry and **Load unpacked** again.
 
-### Keeping it available long-term
+### Keeping it available
 
 - An unpacked extension stays installed across Chrome restarts as long as the
   source folder stays where it is. Moving or deleting the folder disables it.
-- Because it lives inside the job-search vault for now, it will keep working from
-  that path. If it is later moved to its own repo, re-run **Load unpacked** from
-  the new location (or use a symlink) and remove the old entry.
-- Chrome may periodically warn about running an unpacked/developer-mode
-  extension. That is expected for a personal tool and is dismissed each time.
+- It currently lives inside the job-search vault (tracked there, no nested git
+  repo). If it moves to its own repo, re-run **Load unpacked** from the new path
+  (or symlink) and remove the old entry.
+- Chrome periodically warns about running a developer-mode extension. Expected
+  for a personal tool; dismissed each time.
 
-### Options considered and not chosen
+### Not chosen
 
-- **Packing a `.crx`**: Chrome blocks side-loaded `.crx` files that are not from
-  the Web Store, so this does not actually make installation easier. Not worth it.
-- **Publishing to the Chrome Web Store**: requires a developer account and a
-  registration fee, a review process, and privacy disclosures. Far too heavy for
-  a single-user utility. Revisit only if the extension is ever shared.
-- **A dedicated "developer" Chrome profile** for the unpacked extension: a
-  reasonable hygiene choice if the developer-mode warning becomes annoying, but
-  optional. Noted, not required.
+- **Packing a `.crx`** — Chrome blocks side-loaded `.crx` files that are not from
+  the Web Store, so it does not make installation easier.
+- **Publishing to the Chrome Web Store** — developer account, fee, review, and
+  privacy disclosures. Far too heavy for a single-user tool. Only if it is ever
+  shared.
 
 ## Out of Scope
 
-- iframes and cross-origin frames. v1 inspects the top document only.
+- iframes and cross-origin frames. Top document only.
 - Pretty-printing or reformatting the copied HTML. It is copied raw.
-- Copying anything other than `outerHTML` (no CSS selector, no XPath, no computed
-  styles, no screenshots).
-- Firefox, Safari, or other browsers. Chrome (and Chromium-based browsers that
-  accept the same unpacked extension) only.
-- A settings/options page. There is nothing to configure.
-- Persisting inspect mode across page navigations or restoring the last selection.
+- Copying anything other than `outerHTML` — no CSS selector, XPath, computed
+  styles, or screenshots.
+- Firefox, Safari, and other non-Chromium browsers.
+- A settings / options page. There is nothing to configure.
+- Persisting inspect mode across navigations or restoring the last selection.
 - Multi-element selection or a selection history.
-- Publishing to the Chrome Web Store.
 
 ## Further Notes
 
-- The project folder is tracked inside the job-search vault (no nested git repo).
-  It can be moved to a standalone repo later; the deployment steps cover
-  re-pointing Chrome at a new path.
-- Keyboard-only copy is Enter, not Space. Space is only intercepted to stop the
-  page scrolling.
-- If the developer-mode nag or the injection-latency on first activation turns
-  out to be annoying in daily use, the fallback is to switch to a declared
-  content script with an `<all_urls>` match and a broader host permission. That
-  trade is deliberately deferred, not taken now.
+- Keyboard-only copy is Enter, not Space.
+- Known escape hatch if `activeTab` injection latency or the developer-mode nag
+  becomes annoying in daily use: switch to a declared content script with an
+  `<all_urls>` match and a broad host permission. Not needed so far.
