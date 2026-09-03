@@ -7,7 +7,7 @@
 
   // Pure DOM helpers live in lib/dom-nav.js (injected first) so they can be
   // unit-tested in Node.
-  const { nextTarget, describeElement } = window.__inspectCopyNav;
+  const { nextTarget, describeElement, isSkippable } = window.__inspectCopyNav;
 
   // --- Double-init guard -----------------------------------------------------
 
@@ -42,6 +42,12 @@
 
     function isOwnNode(el) {
       return !!(el && el.closest && el.closest("#" + UI_ID));
+    }
+
+    // Arrow navigation skips document metadata (via isSkippable) and the
+    // extension's own overlay nodes.
+    function skipForNav(el) {
+      return isSkippable(el) || isOwnNode(el);
     }
 
     function setTarget(el) {
@@ -168,7 +174,7 @@
       if (e.key in dirs) {
         e.preventDefault();
         e.stopPropagation();
-        const next = nextTarget(target, dirs[e.key]);
+        const next = nextTarget(target, dirs[e.key], skipForNav);
         if (next) {
           target = next;
           drawOverlay();

@@ -33,11 +33,12 @@ itself off.
 6. As a user, I want a floating label showing the element's tag name, its id, and its classes, so that I can confirm I have the right element.
 7. As a user, I want the highlight overlay to not intercept my mouse, so that moving the cursor still reflects the true element underneath.
 8. As a user, I want only one element selected at any time, so that the interaction stays simple.
-9. As a user, I want to press the Up arrow to move the selection to the previous element sibling, so that I can walk backwards through a list without the mouse.
-10. As a user, I want to press the Down arrow to move the selection to the next element sibling, so that I can walk forwards through a list without the mouse.
+9. As a user, I want to press the Up arrow to move the selection to the previous element sibling, or to the parent when there is no previous sibling, so that Up always steps somewhere sensible.
+10. As a user, I want to press the Down arrow to move the selection to the next element sibling, or, when the current element has none, to the nearest following element of an ancestor, so that a lone child still steps forward instead of dead-ending.
 11. As a user, I want to press the Left arrow to move the selection to the parent element, so that I can widen the selection to a container.
 12. As a user, I want to press the Right arrow to move the selection to the first element child, so that I can narrow into a container.
 13. As a user, I want arrow traversal to skip text and comment nodes and only land on element nodes, so that the selection is always something copyable.
+13a. As a user, I want arrow traversal to skip document-metadata elements (`head`, `meta`, `title`, `script`, `link`, `style`, `base`, `noscript`) and the extension's own overlay, so that pressing Right on `html` lands on `body` and I never end up inside `head`.
 14. As a user, I want arrow presses at the edges of the tree to do nothing (no wrap-around), so that I do not lose my place unexpectedly.
 15. As a user, I want the selected element to scroll into view when arrow navigation lands on something offscreen, so that I can always see the highlight.
 16. As a user, I want the arrow keys and Space to not scroll the page while inspect mode is active, so that navigation and scrolling do not fight each other.
@@ -82,11 +83,12 @@ itself off.
 - Exactly one "current target" element at a time, held in the content script.
 - `mousemove` sets the current target to `document.elementFromPoint` at the cursor, and clears any keyboard traversal state. The mouse is authoritative whenever it moves.
 - Arrow keys move the current target relative to its present value:
-  - Up: previous element sibling (`previousElementSibling`), or no-op.
-  - Down: next element sibling (`nextElementSibling`), or no-op.
+  - Up: previous element sibling; if there is none, the parent element. No-op only at `<html>`.
+  - Down: next element sibling; if there is none, walk up the ancestor chain and take the first ancestor's next element sibling. No-op only when nothing follows anywhere.
   - Left: parent element, stopping at `<html>` (never `document` or above), or no-op.
-  - Right: first element child (`firstElementChild`), or no-op.
-- Traversal considers element nodes only; text and comment nodes are never targets.
+  - Right: first element child, or no-op on a leaf.
+- Traversal considers element nodes only; text and comment nodes are never targets. It also skips document-metadata tags (`head`, `meta`, `title`, `script`, `link`, `style`, `base`, `noscript`) and the extension's own overlay container, in every direction. So Right on `<html>` skips `<head>` and lands on `<body>`, and Up from `<body>` skips the `<head>` subtree and lands on `<html>`.
+- The traversal logic is a pure function, `nextTarget(node, direction, skip)`, in `lib/dom-nav.js`; the content script passes a `skip` predicate that combines the default metadata check with an "is this our own overlay" check.
 - No wrap-around at any edge.
 - After an arrow move, if the new target is not fully in the viewport (or its top is within 96 px of the viewport top), scroll the window so the target's top sits 96 px below the viewport top, plus a small horizontal nudge if it is off to the side. The 96 px gap keeps the target clear of the top edge and of any fixed page header. `scrollIntoView` is not used because it has no padding option.
 - `keydown` for the four arrows and for Space calls `preventDefault()` while inspect mode is active, so the page does not scroll.

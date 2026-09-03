@@ -11,9 +11,13 @@ it only touches your clipboard.
 2. Move the mouse. The element under the cursor is highlighted with a blue box
    and a `tag#id.class` label.
 3. Fine-tune without the mouse using the arrow keys:
-   - **↑ / ↓** previous / next element sibling
+   - **↑ / ↓** previous / next element (falls back to the parent / the next
+     element further up, so a lone child still steps somewhere)
    - **←** parent element
    - **→** first child element
+
+   Traversal skips `head`, `script`, `meta` and friends, so **→** on `<html>`
+   lands on `<body>`.
 4. **Click** the element, or press **Enter**, to copy its `outerHTML`. A small
    toast confirms, and inspect mode turns off.
 5. Press **Esc** or click the toolbar icon again to leave without copying.
