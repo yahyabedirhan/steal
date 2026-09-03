@@ -1,33 +1,34 @@
 # Handoff — Steal (Chrome inspect-and-copy extension)
 
-Date: 2026-09-03
+Date: 2026-09-03 (last updated after the keyboard-shortcut change, commit `eab7697`)
 Project: `personal-projects/steal/` (inside the job-search vault, tracked there,
 no nested git repo)
 
 ## What this is
 
-A small Chrome MV3 extension. Toolbar icon toggles an "inspect mode": hover
-highlights the element under the cursor, arrow keys walk the DOM, click or Enter
-copies that element's raw `outerHTML` to the clipboard, then inspect mode exits.
-The name "Steal" is an ironic joke chosen by the user — it only touches the
-clipboard.
+A small Chrome MV3 extension. Toolbar icon or a keyboard shortcut toggles an
+"inspect mode": hover highlights the element under the cursor, arrow keys walk
+the DOM, click or Enter copies that element's raw `outerHTML` to the clipboard,
+then inspect mode exits. The name "Steal" is an ironic joke chosen by the
+user — it only touches the clipboard.
 
 ## Current status: done and working
 
-The user confirmed "all these work fine now". All four requested behaviors are
-implemented, unit-tested where pure, and verified in a real browser via a local
+The user confirmed the core behaviors work. Everything is implemented,
+unit-tested where pure, and verified in a real browser via a local
 `python3 -m http.server` + the in-app Browser pane (injecting `lib/dom-nav.js` +
 `content.js` with a stubbed `window.chrome`). 12/12 unit tests pass
-(`npm test` → `node --test`).
+(`npm test` → `node --test`). The keyboard shortcut (`chrome.commands`) can only
+be verified in a real Chrome load, not the Browser pane.
 
 There is no outstanding task. This handoff exists only to carry context if the
 user comes back with more changes.
 
 ## Authoritative sources (do not re-derive)
 
-- **Spec**: [`.specs/00-steal.md`](../.specs/00-steal.md) — was just rewritten
-  (commit `1da0611`) to be a clean latest-state spec with no transition history.
-  This is the single source of truth for intended behavior.
+- **Spec**: [`.specs/00-steal.md`](../.specs/00-steal.md) — a clean latest-state
+  spec (rewritten in `1da0611`, kept current since). The single source of truth
+  for intended behavior; check it before changing anything.
 - **README**: [`../README.md`](../README.md) — user-facing usage + unpacked
   install instructions.
 - **Code**: `manifest.json`, `background.js` (service worker), `content.js`
@@ -42,6 +43,11 @@ user comes back with more changes.
 ## Key design decisions already made (see spec for detail)
 
 - Plain JS, no build step. `activeTab` + `scripting` only, on-demand injection.
+- Two entry points routed through one `toggleOnTab(tab)` in `background.js`: the
+  toolbar icon (`chrome.action.onClicked`) and a `toggle-steal` keyboard command
+  (`chrome.commands.onCommand`), default `Ctrl+Shift+S` / `Command+Shift+S` on
+  macOS. Chrome forbids a bare `Shift+S` (needs a Ctrl/Alt/Command modifier);
+  user rebinds at `chrome://extensions/shortcuts`. `commands` needs no permission.
 - Arrow traversal: Up = prev sibling else parent; Down = next sibling else
   nearest following element of an ancestor (lone-child gap-jump); Left = parent
   (stops at `<html>`); Right = first child. Skips `head`/`meta`/`title`/`script`/
