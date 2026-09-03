@@ -1,0 +1,10 @@
+{
+  "name": "steal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Steal — Chrome MV3 extension: point at an element and copy its outerHTML.",
+  "scripts": {
+    "test": "node --test",
+    "gen-icons": "python3 tools/gen-icons.py"
+  }
+}

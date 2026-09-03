@@ -1,0 +1,82 @@
+/* All extension UI lives under #__inspect_copy_ui. Values are explicit and
+   defensive so page styles cannot bleed in. */
+
+#__inspect_copy_ui,
+#__inspect_copy_ui * {
+  all: initial;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#__inspect_copy_ui {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+#__inspect_copy_ui .ic-overlay {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  background: rgba(26, 115, 232, 0.18);
+  border: 1px solid rgba(26, 115, 232, 0.9);
+  border-radius: 1px;
+  z-index: 2147483647;
+}
+
+#__inspect_copy_ui .ic-label {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  max-width: 90vw;
+  padding: 2px 6px;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 2px;
+  z-index: 2147483647;
+}
+
+#__inspect_copy_ui .ic-toast {
+  position: fixed;
+  pointer-events: none;
+  transform: translate(8px, 8px) scale(0.96);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  padding: 4px 8px;
+  background: #202124;
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 2147483647;
+}
+
+#__inspect_copy_ui .ic-toast-error {
+  background: #c5221f;
+}
+
+#__inspect_copy_ui .ic-toast-in {
+  opacity: 1;
+  transform: translate(8px, 8px) scale(1);
+}
+
+html.ic-active,
+html.ic-active * {
+  cursor: crosshair !important;
+}
+
+html.ic-active {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}

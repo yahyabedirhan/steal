@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Steal — demo page</title>
+  <style>
+    body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+    nav a { margin-right: 1rem; }
+    .tall { height: 140vh; background: linear-gradient(#fafafa, #e8f0fe); border-radius: 8px; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Steal demo</h1>
+  <p>Activate the extension, then hover, arrow-key around, and click or press Enter.</p>
+
+  <nav>
+    <a href="https://example.com/one">Link one</a>
+    <a href="https://example.com/two">Link two</a>
+    <button type="button" onclick="alert('page click fired — should NOT happen in inspect mode')">Trap button</button>
+  </nav>
+
+  <div class="card" id="alpha">
+    <h2 class="card-title">Card alpha</h2>
+    <ul class="list">
+      <li class="item first">First item</li>
+      <li class="item" id="mid">Middle item <strong>with nested bold</strong></li>
+      <li class="item last">Last item</li>
+    </ul>
+  </div>
+
+  <div class="card" id="beta">
+    <h2 class="card-title">Card beta</h2>
+    <p>Paragraph with an <a href="https://example.com/inline">inline link</a> inside it.</p>
+  </div>
+
+  <div class="tall">Scroll region — use arrow keys to walk into an element below the fold.</div>
+
+  <div class="card" id="gamma">
+    <h2 class="card-title">Card gamma (below the fold)</h2>
+    <p>If arrow navigation reaches here it should scroll into view.</p>
+  </div>
+</body>
+</html>
