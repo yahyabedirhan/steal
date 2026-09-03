@@ -78,7 +78,7 @@ off.
 
 - Two entry points, both handled in the service worker and routed through one `toggleOnTab(tab)` function:
   - The toolbar icon (an `action` with no popup) — `chrome.action.onClicked`.
-  - A keyboard command `toggle-steal`, default **Alt+Shift+S** — `chrome.commands.onCommand`. Chrome forbids a bare `Shift+S` for extension commands (a `Ctrl`/`Alt` modifier is mandatory), and the user rebinds it at `chrome://extensions/shortcuts`. The `commands` manifest key needs no permission. The listener falls back to `chrome.tabs.query({ active: true, lastFocusedWindow: true })` on older Chrome that does not pass the tab.
+  - A keyboard command `toggle-steal`, default `Ctrl+Shift+S` (`Command+Shift+S` on macOS) — `chrome.commands.onCommand`. Chrome forbids a bare `Shift+S` for extension commands (a `Ctrl`, `Alt`, or `Command` modifier is mandatory), and the user rebinds it at `chrome://extensions/shortcuts`. The `commands` manifest key needs no permission. The listener falls back to `chrome.tabs.query({ active: true, lastFocusedWindow: true })` on older Chrome that does not pass the tab.
 - `toggleOnTab` injects the stylesheet and scripts into the tab (a repeat injection is harmless), then sends a message toggling inspect mode. That message is the single source of truth for on/off state.
 - While inspect mode is active on a tab, the service worker sets an `ON` badge on the action for that tab, and clears it when inspect mode ends by any route.
 - Inspect mode ends on a successful copy, an Esc keypress, or another toggle (icon or shortcut). The content script notifies the service worker on start and end so the badge stays in sync; the notify call is wrapped so a stale (reloaded) extension context fails quietly.
