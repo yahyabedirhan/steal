@@ -8,6 +8,22 @@
   // Pure DOM helpers live in lib/dom-nav.js (injected first) so they can be
   // unit-tested in Node.
   const { nextTarget, describeElement, isSkippable } = window.__inspectCopyNav;
+  const { serialize } = window.__inspectCopySerialize;
+  const FORMATS = window.__inspectCopyFormats;
+  const FORMAT_STORAGE_KEY = "activeFormatId";
+
+  // A format's transform() may return either a DOM node (Full HTML, Clean
+  // HTML) or a string directly (Plain Text). Only the node case needs
+  // lib/serialize.js.
+  function stringifyFormatOutput(output) {
+    return output && output.nodeType === 1 ? serialize(output) : output;
+  }
+
+  const ICONS = {
+    "full-html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 12l5 7M16 5l5 7-5 7"/></svg>',
+    "clean-html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 12l5 7M16 5l5 7-5 7"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>',
+    "plain-text": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M12 6v13"/></svg>',
+  };
 
   // --- Double-init guard -----------------------------------------------------
 
@@ -23,6 +39,10 @@
     let target = null;
     let lastMouse = { x: 0, y: 0 };
     let ui = null; // { root, overlay, label }
+    // Caches showLength's transform+serialize by (target, format): drawOverlay
+    // also runs on scroll/resize, where the target hasn't changed, so this
+    // keeps the expensive part to once per genuine target/format change.
+    let lengthCache = null; // { target, formatId, length }
 
     function buildUi() {
       const root = document.createElement("div");
@@ -34,11 +54,17 @@
 
       const label = document.createElement("div");
       label.className = "ic-label";
+      const labelIcon = document.createElement("span");
+      labelIcon.className = "ic-label-icon";
+      const labelText = document.createElement("span");
+      labelText.className = "ic-label-text";
+      label.appendChild(labelIcon);
+      label.appendChild(labelText);
 
       root.appendChild(overlay);
       root.appendChild(label);
       page.mount(root);
-      return { root, overlay, label };
+      return { root, overlay, label, labelIcon, labelText };
     }
 
     function isOwnNode(el) {
@@ -52,9 +78,29 @@
     }
 
     function setTarget(el) {
-      if (!el || el.nodeType !== 1 || isOwnNode(el)) return;
+      if (!el || el.nodeType !== 1 || isOwnNode(el) || el === target) return;
       target = el;
       drawOverlay();
+    }
+
+    // Builds the hover label's text for the currently active format. Purely
+    // data-driven off the format's own showDescriptor/showDimensions/
+    // showLength fields — no branching here on which format is active, so a
+    // future format needs only to set those fields, not touch this function.
+    function buildLabelText(format, r) {
+      const parts = [];
+      if (format.showDescriptor === "full") parts.push(describeElement(target));
+      else if (format.showDescriptor === "tag") parts.push(target.tagName.toLowerCase());
+      if (format.showDimensions) parts.push(Math.round(r.width) + "×" + Math.round(r.height));
+      let text = parts.join("  ");
+      if (format.showLength) {
+        if (!lengthCache || lengthCache.target !== target || lengthCache.formatId !== format.id) {
+          const output = format.transform(page.capture(target));
+          lengthCache = { target, formatId: format.id, length: stringifyFormatOutput(output).length };
+        }
+        text += (text ? "  ·  " : "") + lengthCache.length + " chars";
+      }
+      return text;
     }
 
     function drawOverlay() {
@@ -67,9 +113,13 @@
       o.width = Math.max(0, r.width) + "px";
       o.height = Math.max(0, r.height) + "px";
 
-      ui.label.textContent = describeElement(target) +
-        "  " + Math.round(r.width) + "×" + Math.round(r.height);
-      ui.label.style.display = "block";
+      const format = session.format;
+      if (ui.label.dataset.icon !== format.id) {
+        ui.labelIcon.innerHTML = ICONS[format.id] || "";
+        ui.label.dataset.icon = format.id;
+      }
+      ui.labelText.textContent = buildLabelText(format, r);
+      ui.label.style.display = "flex";
       // Place the label just above the box, or just below if there is no room.
       const labelH = 20;
       let ly = r.top - labelH - 2;
@@ -128,7 +178,8 @@
       if (!target || !session || session.copying) return;
       const owner = session;
       const desc = describeElement(target);
-      const html = page.capture(target);
+      const output = owner.format.transform(page.capture(target));
+      const html = stringifyFormatOutput(output);
       owner.copying = true;
       const ok = await copyText(html, owner);
       if (session !== owner) return; // This inspection ended while copying.
@@ -166,6 +217,18 @@
         e.preventDefault();
         e.stopPropagation();
         stop("escape");
+        return;
+      }
+
+      const format = FORMATS.find((f) => f.key === e.key);
+      if (format) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (session.format !== format) {
+          session.format = format;
+          drawOverlay();
+          setStoredFormat(format.id);
+        }
         return;
       }
 
@@ -249,9 +312,17 @@
       ["resize", onScrollOrResize],
     ];
 
+    function setStoredFormat(id) {
+      try {
+        chrome.storage.local.set({ [FORMAT_STORAGE_KEY]: id });
+      } catch (e) {
+        // Extension context invalidated (e.g. reloaded). Nothing to do.
+      }
+    }
+
     function start() {
       if (session) return;
-      session = { copying: false };
+      const owner = session = { copying: false, format: FORMATS[0] };
       ui = buildUi();
       target = null;
 
@@ -261,6 +332,21 @@
       // Seed the target from the current pointer position if we can.
       const el = document.elementFromPoint(lastMouse.x, lastMouse.y);
       if (el && !isOwnNode(el)) setTarget(el);
+
+      // Restore the last-used format once storage answers; if the session
+      // already ended or moved on to a different format by then, drop it.
+      try {
+        chrome.storage.local.get([FORMAT_STORAGE_KEY], (result) => {
+          if (session !== owner || owner.format !== FORMATS[0]) return;
+          const stored = FORMATS.find((f) => f.id === result[FORMAT_STORAGE_KEY]);
+          if (stored) {
+            owner.format = stored;
+            drawOverlay();
+          }
+        });
+      } catch (e) {
+        // Extension context invalidated (e.g. reloaded). Stay on the default.
+      }
 
       notify("inspect:started");
     }
@@ -272,6 +358,7 @@
       for (const [type, fn] of LISTENERS) window.removeEventListener(type, fn, true);
       page.setInspecting(false);
       target = null;
+      lengthCache = null;
 
       const root = ui && ui.root;
       ui = null;

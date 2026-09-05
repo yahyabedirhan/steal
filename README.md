@@ -20,9 +20,14 @@ it only touches your clipboard.
 
    Traversal skips `head`, `script`, `meta` and friends, so **→** on `<html>`
    lands on `<body>`.
-4. **Click** the element, or press **Enter**, to copy its page HTML. A small
-   toast confirms, and inspect mode turns off.
-5. Press **Esc**, hit the shortcut again, or click the toolbar icon to leave
+4. Press **1**, **2**, or **3** to switch the active copy format — Full HTML,
+   Clean HTML, or Plain Text. The hover label shows an icon and a live
+   preview (dimensions and/or a character count) for whichever format is
+   active. The choice persists across toggles, so the format you last used is
+   what a new inspection starts with.
+5. **Click** the element, or press **Enter**, to copy it in the active
+   format. A small toast confirms, and inspect mode turns off.
+6. Press **Esc**, hit the shortcut again, or click the toolbar icon to leave
    inspect mode.
 
 Chrome does not allow a bare `Shift+S` for extension shortcuts (a `Ctrl`, `Alt`,
@@ -62,14 +67,39 @@ If you move it, re-run **Load unpacked** from the new location.
 
 | File | Role |
 | --- | --- |
-| `manifest.json` | MV3 manifest. `activeTab` + `scripting` only, no host permissions. |
+| `manifest.json` | MV3 manifest. `activeTab`, `scripting`, `storage`; no host permissions. |
 | `background.js` | Service worker. Injects the content script on icon click, keeps the `ON` badge in sync. |
 | `lib/dom-nav.js` | Pure helpers: `nextTarget(node, direction)` and `describeElement(el)`. Also `require()`-able in Node. |
-| `lib/page-content.js` | Owns injected nodes and temporary page mutations; captures page HTML without Steal’s additions. |
-| `content.js` | Inspect-mode controller: overlay, label, keyboard traversal, click suppression, clipboard write, toast. |
+| `lib/page-content.js` | Owns injected nodes and temporary page mutations; returns a cleaned clone of the selected element. |
+| `lib/serialize.js` | Turns a DOM node into indented HTML (inline-aware, `pre`/`script`/`style`/`textarea` left untouched). |
+| `lib/formats/` | The format registry — one module per copy format (see below), plus `formats.js`'s ordered array. |
+| `content.js` | Inspect-mode controller: overlay, label, keyboard traversal, format switching, click suppression, clipboard write, toast. |
 | `content.css` | Scoped, defensive styles for the overlay / label / toast. |
 | `test/dom-nav.test.js` | Unit tests for the pure helpers. |
-| `test/content.test.js` | Input-driven checks for copy lifetime, fallback, and page-content fidelity. |
+| `test/serialize.test.js` | Unit tests for the HTML indenter. |
+| `test/formats.test.js` | Unit tests for each format's `transform()`. |
+| `test/content.test.js` | Input-driven checks for copy lifetime, fallback, page-content fidelity, and format switching/persistence. |
+
+### Copy formats
+
+Press **1** / **2** / **3** while inspecting to switch formats; the choice is
+saved (`chrome.storage.local`) and reused as the default for the next
+inspection.
+
+| Key | Format | `lib/formats/` module | What it does |
+| --- | --- | --- | --- |
+| 1 | Full HTML | `full-html.js` | The page HTML exactly as selected, pretty-printed. |
+| 2 | Clean HTML | `clean-html.js` | Same subtree, styling/behavior attributes stripped (a small allowlist keeps `img[src,alt]` and `a[href]`), textless subtrees dropped, single-child textless wrappers unwrapped, pretty-printed. |
+| 3 | Plain Text | `plain-text.js` | Just the text content, whitespace collapsed. |
+
+Each module exports `{ id, key, label, showDescriptor, showDimensions,
+showLength, transform(clonedEl) }` (the hover-label icon is keyed by `id`). `content.js` and the hover label read only
+this array — adding a format is adding a module and one entry in
+`formats.js`, not editing either of those. `transform` returns a DOM node
+(serialized via `lib/serialize.js`) for the two HTML formats, or a string
+directly for Plain Text. See
+[.specs/01-multi-format-copy.md](.specs/01-multi-format-copy.md) for the full
+design.
 
 ## Inspect lifecycle
 
@@ -101,7 +131,8 @@ A successful copy leaves its toast to fade; Escape and toggle-off remove the
 current inspection's UI immediately. See the [specification](.specs/00-steal.md)
 for page-content ownership and clipboard behavior.
 
-## Not included (v1)
+## Not included
 
-iframes / cross-origin frames, HTML pretty-printing, copying selectors or XPath,
-an options page, non-Chromium browsers. See `.specs/00-steal.md`.
+iframes / cross-origin frames, copying selectors or XPath, a toolbar popup or
+options page, screenshot-to-clipboard, SVG-aware cleaning, non-Chromium
+browsers. See `.specs/00-steal.md` and `.specs/01-multi-format-copy.md`.

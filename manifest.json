@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Steal",
   "version": "1.0.0",
-  "description": "Point at any element and steal its HTML straight to your clipboard. A one-click DevTools-style element picker.",
-  "permissions": ["activeTab", "scripting"],
+  "description": "Point at any element and steal it straight to your clipboard.",
+  "permissions": ["activeTab", "scripting", "storage"],
   "background": {
     "service_worker": "background.js"
   },
@@ -17,7 +17,7 @@
     }
   },
   "action": {
-    "default_title": "Steal — click (or Ctrl/Cmd+Shift+S) to grab an element's HTML",
+    "default_title": "Steal elements on your page",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

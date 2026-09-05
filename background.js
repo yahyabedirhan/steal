@@ -21,7 +21,16 @@ async function ensureInjected(tabId) {
   await chrome.scripting.insertCSS({ target: { tabId }, files: ["content.css"] });
   await chrome.scripting.executeScript({
     target: { tabId },
-    files: ["lib/dom-nav.js", "lib/page-content.js", "content.js"],
+    files: [
+      "lib/dom-nav.js",
+      "lib/page-content.js",
+      "lib/serialize.js",
+      "lib/formats/full-html.js",
+      "lib/formats/clean-html.js",
+      "lib/formats/plain-text.js",
+      "lib/formats/formats.js",
+      "content.js",
+    ],
   });
 }
 

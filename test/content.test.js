@@ -5,7 +5,10 @@ const { readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
 const { JSDOM } = require("jsdom");
 
-function inspect(t, markup = '<button id="pick">Pick me</button>') {
+// `store` defaults to a fresh object per call (an isolated tab); pass the
+// same object to two calls to simulate chrome.storage.local's real
+// behavior of being shared across reloads/tabs, not reset each time.
+function inspect(t, markup = '<button id="pick">Pick me</button>', store = {}) {
   const dom = new JSDOM(markup, { runScripts: "outside-only" });
   t.after(() => dom.window.close());
   const { window } = dom;
@@ -18,21 +21,34 @@ function inspect(t, markup = '<button id="pick">Pick me</button>') {
   document.elementFromPoint = () => pointed;
   window.HTMLElement.prototype.scrollIntoView = function () {};
   window.requestAnimationFrame = (fn) => frames.push(fn);
+  const stored = store;
   window.chrome = { runtime: {
     sendMessage: (msg) => messages.push(msg.type),
     onMessage: { addListener: (fn) => { receive = fn; } },
-  } };
+  }, storage: { local: {
+    get: (keys, cb) => cb(Object.fromEntries(keys.map((k) => [k, stored[k]]).filter(([, v]) => v !== undefined))),
+    set: (values) => Object.assign(stored, values),
+  } } };
   Object.defineProperty(window.navigator, "clipboard", { value: {
     writeText: (text) => new Promise((resolve, reject) => {
       writes.push({ text, resolve, reject });
     }),
   } });
   document.execCommand = () => false;
-  for (const file of ["lib/dom-nav.js", "lib/page-content.js", "content.js"]) {
+  for (const file of [
+    "lib/dom-nav.js",
+    "lib/page-content.js",
+    "lib/serialize.js",
+    "lib/formats/full-html.js",
+    "lib/formats/clean-html.js",
+    "lib/formats/plain-text.js",
+    "lib/formats/formats.js",
+    "content.js",
+  ]) {
     window.eval(readFileSync(resolve(__dirname, "..", file), "utf8"));
   }
   return {
-    window, document, writes, messages,
+    window, document, writes, messages, stored,
     toggle: () => receive({ type: "inspect:toggle" }),
     key: (key) => window.dispatchEvent(new window.KeyboardEvent("keydown", {
       key, bubbles: true, cancelable: true,
@@ -42,6 +58,8 @@ function inspect(t, markup = '<button id="pick">Pick me</button>') {
       window.dispatchEvent(new window.MouseEvent("mousemove", { clientX: 100, clientY: 100 }));
     },
     frame() { for (const fn of frames.splice(0)) fn(); },
+    label: () => document.querySelector(".ic-label-text").textContent,
+    labelIcon: () => document.querySelector(".ic-label").dataset.icon,
   };
 }
 
@@ -111,8 +129,15 @@ test("copying body excludes Steal UI while preserving page markup with similar n
   app.toggle();
   app.point(app.document.body);
   app.key("Enter");
-  assert.equal(app.writes[0].text,
-    '<body><main data-inspect-copy=""><p id="__inspect_copy_ui">Page content</p></main></body>');
+  assert.equal(app.writes[0].text, [
+    "<body>",
+    '  <main data-inspect-copy="">',
+    '    <p id="__inspect_copy_ui">',
+    "      Page content",
+    "    </p>",
+    "  </main>",
+    "</body>",
+  ].join("\n"));
 });
 
 test("copying html excludes the inspect class and preserves new page classes on exit", (t) => {
@@ -120,7 +145,14 @@ test("copying html excludes the inspect class and preserves new page classes on 
   app.toggle();
   app.point(app.document.documentElement);
   app.key("Enter");
-  assert.equal(app.writes[0].text, '<html class="  site  "><head></head><body>Page</body></html>');
+  assert.equal(app.writes[0].text, [
+    '<html class="  site  ">',
+    "  <head></head>",
+    "  <body>",
+    "    Page",
+    "  </body>",
+    "</html>",
+  ].join("\n"));
   app.document.documentElement.classList.add("changed-by-page");
   app.key("Escape");
   assert.equal(app.document.documentElement.className, "site changed-by-page");
@@ -131,7 +163,8 @@ test("copying before the scroll frame preserves the original inline styles", (t)
   app.toggle();
   app.key("ArrowRight");
   app.key("Enter");
-  assert.equal(app.writes[0].text, '<p style="color:red;scroll-margin-top:7px!important">Child</p>');
+  assert.equal(app.writes[0].text,
+    '<p style="color:red;scroll-margin-top:7px!important">\n  Child\n</p>');
   app.key("Escape");
   assert.equal(app.document.querySelector("p").getAttribute("style"), "color:red;scroll-margin-top:7px!important");
   app.frame();
@@ -149,7 +182,8 @@ test("scroll cleanup preserves page edits and repeated navigation never retains 
   child.style.setProperty("scroll-margin-top", "13px");
   app.frame();
   app.key("Enter");
-  assert.equal(app.writes[0].text, '<p style="scroll-margin-top: 13px; color: blue;">Child</p>');
+  assert.equal(app.writes[0].text,
+    '<p style="scroll-margin-top: 13px; color: blue;">\n  Child\n</p>');
   assert.equal(app.document.querySelector("main").hasAttribute("style"), false);
 });
 
@@ -163,7 +197,8 @@ test("an earlier success toast is excluded from the next body copy", async (t) =
   app.toggle();
   app.point(app.document.body);
   app.key("Enter");
-  assert.equal(app.writes[1].text, '<body><button id="pick">Pick me</button></body>');
+  assert.equal(app.writes[1].text,
+    '<body>\n  <button id="pick">\n    Pick me\n  </button>\n</body>');
 });
 
 test("a page-owned inspect class and an absent class attribute both survive inspection", (t) => {
@@ -172,7 +207,8 @@ test("a page-owned inspect class and an absent class attribute both survive insp
     app.toggle();
     app.point(app.document.documentElement);
     app.key("Enter");
-    assert.equal(app.writes[0].text, `<html${attr}><head></head><body>Page</body></html>`);
+    assert.equal(app.writes[0].text,
+      `<html${attr}>\n  <head></head>\n  <body>\n    Page\n  </body>\n</html>`);
     app.key("Escape");
     assert.equal(app.document.documentElement.outerHTML, `<html${attr}><head></head><body>Page</body></html>`);
   }
@@ -187,7 +223,8 @@ test("ordinary page elements with Steal's ID are selectable and their clicks are
   app.point(button);
   const click = new app.window.MouseEvent("click", { bubbles: true, cancelable: true });
   button.dispatchEvent(click);
-  assert.equal(app.writes[0].text, '<button id="__inspect_copy_ui">Page button</button>');
+  assert.equal(app.writes[0].text,
+    '<button id="__inspect_copy_ui">\n  Page button\n</button>');
   assert.equal(click.defaultPrevented, true);
   assert.equal(pageClicks, 0);
   app.key("Escape");
@@ -206,7 +243,46 @@ test("the fallback writes the same page HTML when the primary clipboard is absen
   app.toggle();
   app.key("Enter");
   await settle();
-  assert.equal(copied, '<button id="pick">Pick me</button>');
+  assert.equal(copied, '<button id="pick">\n  Pick me\n</button>');
   assert.equal(app.document.querySelector("textarea"), null);
   assert.equal(app.messages.at(-1), "inspect:ended");
+});
+
+test("a digit key switches the active format without copying or moving the target", (t) => {
+  const app = inspect(t, '<div id="pick" class="card">Hello <b>world</b></div>');
+  app.toggle();
+  assert.equal(app.labelIcon(), "full-html");
+  app.key("3");
+  assert.equal(app.labelIcon(), "plain-text");
+  assert.equal(app.label(), "11 chars");
+  assert.equal(app.writes.length, 0);
+  app.key("Enter");
+  assert.equal(app.writes[0].text, "Hello world");
+});
+
+test("switching format persists as the default for the next inspection", (t) => {
+  const store = {};
+  const markup = '<div id="pick" class="card"><p>Text</p></div>';
+
+  const first = inspect(t, markup, store);
+  first.toggle();
+  first.key("2");
+  assert.equal(first.labelIcon(), "clean-html");
+  first.key("Escape");
+
+  const second = inspect(t, markup, store);
+  second.toggle();
+  assert.equal(second.labelIcon(), "clean-html");
+  second.key("Enter");
+  assert.equal(second.writes[0].text, "<div>\n  <p>\n    Text\n  </p>\n</div>");
+});
+
+test("Clean HTML's live label length matches what Enter actually copies", (t) => {
+  const app = inspect(t, '<div id="pick" class="card" data-x="1"><p class="a">Text</p></div>');
+  app.toggle();
+  app.key("2");
+  const expectedHtml = "<div>\n  <p>\n    Text\n  </p>\n</div>";
+  assert.equal(app.label(), "div  0×0  ·  " + expectedHtml.length + " chars");
+  app.key("Enter");
+  assert.equal(app.writes[0].text, expectedHtml);
 });
