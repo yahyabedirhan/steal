@@ -1,6 +1,7 @@
 import { fullHtml } from "./full-html";
 import { cleanHtml } from "./clean-html";
 import { plainText } from "./plain-text";
+import { markdown } from "./markdown";
 
 /**
  * A copy mode: one entry in the "Full HTML / Clean HTML / Plain Text" picker.
@@ -14,7 +15,7 @@ import { plainText } from "./plain-text";
 export interface Mode {
   /** Stable identifier, also the `chrome.storage.local` value and icon key. */
   id: string;
-  /** Digit key (`"1"` / `"2"` / `"3"`) that switches to this mode. */
+  /** Digit key (`"1"` / `"2"` / `"3"` / `"4"`) that switches to this mode. */
   key: string;
   label: string;
   /** How the hover label names the target: full `tag#id.class`, bare `tag`, or nothing. */
@@ -30,4 +31,4 @@ export interface Mode {
  * this array. Adding a mode is adding a module plus one entry here (a mode with
  * a distinct hover-label glyph also needs an `ICONS` entry in `robber.ts`).
  */
-export const MODES: readonly Mode[] = [fullHtml, cleanHtml, plainText];
+export const MODES: readonly Mode[] = [fullHtml, cleanHtml, plainText, markdown];

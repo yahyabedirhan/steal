@@ -1,39 +1,99 @@
 import type { Mode } from "./modes";
+import { INLINE_TAGS, collapseWhitespace, isNeverContent } from "../utils/html-tags";
 
 /**
- * Plain Text: just the words, no markup.
+ * Plain Text: the words with their structure, but no markup.
  *
- * The one structure it does keep is lists: every `<li>` lands on its own line,
- * numbered `1. `, `2. ` … under an `<ol>` and bulleted `- ` under a `<ul>`,
- * with nested lists indented two spaces per level. Everything else collapses to
- * a single run of whitespace, as before.
+ * Every block-level element lands on its own line; inline elements keep flowing
+ * with their surrounding text. `<pre>` is emitted verbatim as its own block.
+ * `<style>` / `<script>` text is dropped, the same "never content" rule Clean
+ * HTML uses. Blocks are joined with a single `\n`.
+ *
+ * Lists keep the richer shape they shipped with as a follow-on to 01: every
+ * `<li>` on its own line, numbered `1. ` under an `<ol>` and bulleted `- `
+ * under a `<ul>`, nested lists indented two spaces per level. `renderList` is
+ * exported so the Markdown mode can reuse the exact same structure.
  */
 
 const LIST_TAGS = new Set(["UL", "OL"]);
 
-function collapse(s: string): string {
-  return s.replace(/\s+/g, " ");
+function isInline(el: Element): boolean {
+  return INLINE_TAGS.has(el.tagName.toUpperCase());
+}
+
+/** An inline element's text, children concatenated with no line breaks. */
+function renderInline(el: Element): string {
+  if (isNeverContent(el)) return "";
+  let out = "";
+  for (const child of Array.from(el.childNodes)) {
+    if (child.nodeType === 3) out += collapseWhitespace(child.textContent ?? "");
+    else if (child.nodeType === 1) out += renderInline(child as Element);
+  }
+  return out;
 }
 
 /**
- * Flatten a node to text, turning any list it contains into newline-separated,
- * marked lines. Newlines only ever come from list rendering; raw whitespace in
- * text nodes is collapsed to spaces here so source formatting never leaks
- * through as line breaks.
+ * Render an element in block context. Inline runs among its children collapse
+ * onto one line; each block child is a further line. Returns the block's text,
+ * lines joined with a single `\n`.
+ */
+function renderBlock(el: Element): string {
+  const tag = el.tagName.toUpperCase();
+  if (isNeverContent(el)) return "";
+  if (tag === "PRE") return (el.textContent ?? "").replace(/^\s+|\s+$/g, "");
+  if (LIST_TAGS.has(el.tagName)) return renderList(el, 0, flatten);
+
+  const parts: string[] = [];
+  let line = "";
+  const flushLine = () => {
+    if (line.trim()) parts.push(line.trim());
+    line = "";
+  };
+
+  for (const child of Array.from(el.childNodes)) {
+    if (child.nodeType === 3) {
+      line += collapseWhitespace(child.textContent ?? "");
+    } else if (child.nodeType === 1 && isInline(child as Element)) {
+      line += renderInline(child as Element);
+    } else if (child.nodeType === 1) {
+      flushLine();
+      const block = renderBlock(child as Element);
+      if (block) parts.push(block);
+    }
+  }
+  flushLine();
+  return parts.join("\n");
+}
+
+/**
+ * Flatten a node to a single run of text (no structure), for the text of one
+ * list item. A nested list directly under an `<li>` is handled by `renderList`
+ * itself, not here.
  */
 function flatten(node: Node): string {
-  if (node.nodeType === 3) return collapse(node.textContent ?? "");
+  if (node.nodeType === 3) return collapseWhitespace(node.textContent ?? "");
   if (node.nodeType !== 1) return "";
-
   const el = node as Element;
-  if (LIST_TAGS.has(el.tagName)) return "\n" + renderList(el, 0) + "\n";
+  if (isNeverContent(el)) return "";
+  if (LIST_TAGS.has(el.tagName)) return "\n" + renderList(el, 0, flatten) + "\n";
 
   let out = "";
   for (const child of Array.from(el.childNodes)) out += flatten(child);
   return out;
 }
 
-function renderList(list: Element, depth: number): string {
+/**
+ * Render a `<ul>` / `<ol>` as marked, newline-separated lines.
+ *
+ * `renderContent` turns one non-list child of an `<li>` into text. Plain Text
+ * passes `flatten` (strips all markup); Markdown mode passes its own inline
+ * renderer so emphasis and links survive.
+ */
+export function renderList(
+  list: Element,
+  depth: number,
+  renderContent: (node: Node) => string,
+): string {
   const ordered = list.tagName === "OL";
   const pad = "  ".repeat(depth);
   const lines: string[] = [];
@@ -44,15 +104,13 @@ function renderList(list: Element, depth: number): string {
     index += 1;
     const marker = ordered ? `${index}. ` : "- ";
 
-    // A nested list directly under the `<li>` is rendered one level deeper;
-    // anything else contributes inline text.
     const parts: string[] = [];
     let nested = "";
     for (const child of Array.from(li.childNodes)) {
       if (child.nodeType === 1 && LIST_TAGS.has((child as Element).tagName)) {
-        nested += "\n" + renderList(child as Element, depth + 1);
+        nested += "\n" + renderList(child as Element, depth + 1, renderContent);
       } else {
-        parts.push(flatten(child));
+        parts.push(renderContent(child));
       }
     }
 
@@ -74,11 +132,8 @@ export const plainText: Mode = {
   showDimensions: false,
   showLength: true,
   transform: (el) =>
-    flatten(el)
-      // Trailing spaces before a break, and whitespace-only lines, go. A
-      // line's own leading indentation (nested-list markers) stays.
+    renderBlock(el)
       .replace(/[^\S\n]+\n/g, "\n")
-      .replace(/\n[^\S\n]+\n/g, "\n\n")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/^\s+|\s+$/g, ""),
 };

@@ -1,4 +1,5 @@
 import type { Mode } from "./modes";
+import { NEVER_CONTENT_TAGS } from "../utils/html-tags";
 
 /**
  * Clean HTML: the same subtree, stripped of everything that isn't content.
@@ -26,15 +27,6 @@ const ATTRIBUTE_ALLOWLIST: Record<string, string[]> = {
  * one, so a caption-less image isn't pruned along with its wrapper.
  */
 const CONTENT_BEARING_VOID_TAGS = new Set(["IMG"]);
-
-/**
- * Tags whose `textContent` is markup/code, never prose. A `<style>` full of
- * `@font-face` rules (often base64 fonts) or a `<script>` can dwarf the real
- * content beside it without being content itself. Compared case-insensitively:
- * an inline `<svg><style>` lives in the SVG namespace, where `tagName` is
- * lowercase `"style"` rather than HTML's `"STYLE"`.
- */
-const NEVER_CONTENT_TAGS = new Set(["STYLE", "SCRIPT"]);
 
 function hasContent(el: Element): boolean {
   if (NEVER_CONTENT_TAGS.has(el.tagName.toUpperCase())) return false;

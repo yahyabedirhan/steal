@@ -10,16 +10,12 @@
  *   elements) is treated as block-level.
  * - `pre` / `script` / `style` / `textarea` are copied through via `outerHTML`,
  *   untouched, since whitespace inside them is content, not presentation.
+ *
+ * The tag-name sets it classifies by live in `./html-tags`, shared with the
+ * Plain Text and Markdown modes so all three agree on block vs inline.
  */
 
-const VOID_TAGS = new Set([
-  "AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT",
-  "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR",
-]);
-const VERBATIM_TAGS = new Set(["PRE", "SCRIPT", "STYLE", "TEXTAREA"]);
-const INLINE_TAGS = new Set([
-  "A", "B", "I", "EM", "STRONG", "SPAN", "CODE", "SMALL", "SUB", "SUP", "BR",
-]);
+import { VOID_TAGS, VERBATIM_TAGS, INLINE_TAGS, collapseWhitespace } from "./html-tags";
 
 function escapeText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -39,10 +35,6 @@ function openTag(el: Element): string {
 
 function closeTag(el: Element): string {
   return "</" + el.tagName.toLowerCase() + ">";
-}
-
-function collapseWhitespace(s: string): string {
-  return s.replace(/\s+/g, " ");
 }
 
 /**

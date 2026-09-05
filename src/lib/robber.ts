@@ -42,6 +42,8 @@ const ICONS: Record<string, string> = {
     '<svg viewBox="0 0 24 24"><path d="M8 5 3 12l5 7M16 5l5 7-5 7" style="d:path(\'M8 5 3 12l5 7M16 5l5 7-5 7\')"/><circle class="ic-icon-dot" cx="12" cy="12" r="1.6" style="cx:12px;cy:12px;r:1.6px"/></svg>',
   "plain-text":
     '<svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" style="d:path(\'M5 6h14M12 6v13\')"/></svg>',
+  markdown:
+    '<svg viewBox="0 0 24 24"><path d="M3 17V7l4 5 4-5v10M17 7v7M14 11l3 3 3-3" style="d:path(\'M3 17V7l4 5 4-5v10M17 7v7M14 11l3 3 3-3\')"/></svg>',
 };
 
 /** How `Robber` restores the last-used mode and reports lifecycle changes. */

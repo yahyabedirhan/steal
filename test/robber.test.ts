@@ -309,6 +309,16 @@ test("a digit key switches the active mode without copying or moving the target"
   expect(app.writes[0].text).toBe("Hello world");
 });
 
+test("pressing 4 during inspection selects Markdown without copying or moving the target", () => {
+  const app = setup('<div id="pick" class="card"><h2>Types</h2></div>');
+  app.toggle();
+  app.key("4");
+  expect(app.labelIcon()).toBe("markdown");
+  expect(app.writes.length).toBe(0);
+  app.key("Enter");
+  expect(app.writes[0].text).toBe("## Types");
+});
+
 test("switching mode persists as the default for the next inspection", () => {
   const store: Record<string, string> = {};
   const markup = '<div id="pick" class="card"><p>Text</p></div>';
