@@ -12,8 +12,8 @@ import {
  * The browser's own `Element.scrollIntoView` walks to the nearest scrollable
  * ancestor (a plain `window.scrollBy` would miss elements inside a scroll
  * container), and `scroll-margin` is the only way to give it the edge gap it
- * otherwise has no option for. The patch is reverted a frame later — or
- * immediately, via `flush()` — so it is never captured as page content.
+ * otherwise has no option for. The patch is reverted a frame later, or
+ * immediately via `flush()`, so it is never captured as page content.
  */
 export class MarginScroller implements Scroller {
   private readonly scrollChanges = new Map<Element, ScrollMarginChange>();

@@ -44,7 +44,8 @@ export class Inspector {
    * Used by `Robber` as the arrow-traversal skip predicate and as the guard
    * before setting the pointer target, so navigation and clicks never land on
    * Steal's own overlay. Follows node identity, not matching id / class /
-   * `data-*` — a page element that happens to share Steal's id stays selectable.
+   * `data-*`, so a page element that happens to share Steal's id stays
+   * selectable.
    */
   isExtensionNode(el: Element | null): boolean {
     for (let node: Element | null = el; node; node = node.parentElement) {

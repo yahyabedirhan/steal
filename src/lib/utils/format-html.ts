@@ -2,7 +2,7 @@
  * Turn a DOM node into an indented HTML string.
  *
  * Used by any mode whose `transform()` returns a node rather than a string
- * (see `src/lib/modes/`). Not a mode itself — a small pure utility.
+ * (see `src/lib/modes/`). Not a mode itself, just a small pure utility.
  *
  * - Indentation is 2 spaces per depth.
  * - A small set of inline tags flow with surrounding text instead of each
@@ -104,7 +104,7 @@ function renderBlock(el: Element, depth: number): string[] {
 }
 
 /**
- * Always renders the root in block context, regardless of its own tag — it's
+ * Always renders the root in block context, regardless of its own tag. It is
  * the thing being extracted, not flowed text inside something else.
  */
 export function formatHTML(el: Element): string {

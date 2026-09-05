@@ -3,17 +3,18 @@ import type { Scroller } from "./scroll/scroller";
 import type { Mode } from "./modes/modes";
 import { DomNavigator, type Direction } from "./dom-navigator";
 import { formatHTML } from "./utils/format-html";
+import { MessageType } from "./messages";
 
 /**
- * The orchestrator (the pun is deliberate — the extension is "Steal").
+ * The orchestrator. The name is a pun on the extension itself ("Steal").
  *
  * Registers the pointer/keyboard listeners, owns which mode is active, and
  * sequences `Inspector` and `Scroller`. It is the only entity that holds both
  * of them, and therefore the only place that needs to know both exist.
  *
  * Everything that touches `chrome.*` is injected at the constructor boundary
- * (`getStoredModeId`, `setStoredModeId`, `notify`) so `Robber` itself — and its
- * tests — never need a mocked `chrome` global.
+ * (`getStoredModeId`, `setStoredModeId`, `notify`), so neither `Robber` nor its
+ * tests ever need a mocked `chrome` global.
  */
 
 const UI_ID = "__inspect_copy_ui";
@@ -31,7 +32,7 @@ const SCROLL_MARGIN = 96;
  * would lose to the `all: initial` reset every node under `#__inspect_copy_ui`
  * gets. Geometry (`d`, `cx`/`cy`/`r`) is *also* a CSS property in Chrome and is
  * reset the same way, but differs per icon, so each is repeated inline via
- * `style` — inline style beats any external rule regardless of specificity, so
+ * `style`. Inline style beats any external rule regardless of specificity, so
  * it survives the reset without `content.css` needing to change.
  */
 const ICONS: Record<string, string> = {
@@ -55,8 +56,8 @@ export interface RobberDeps {
    */
   getStoredModeId: (cb: (id: string | undefined) => void) => void;
   setStoredModeId: (id: string) => void;
-  /** Report `inspect:started` / `inspect:ended` to the service worker. */
-  notify: (type: "inspect:started" | "inspect:ended") => void;
+  /** Report `MessageType.Started` / `.Ended` to the service worker. */
+  notify: (type: MessageType) => void;
 }
 
 interface Session {
@@ -170,8 +171,8 @@ export class Robber {
 
   /**
    * The hover label's text for the active mode. Purely data-driven off the
-   * mode's `showDescriptor` / `showDimensions` / `showLength` fields — no
-   * branching here on which mode is active, so a future mode only sets those
+   * mode's `showDescriptor` / `showDimensions` / `showLength` fields. Nothing
+   * here branches on which mode is active, so a future mode only sets those
    * fields, it doesn't touch this method.
    */
   private buildLabelText(mode: Mode, r: DOMRect): string {
@@ -183,6 +184,10 @@ export class Robber {
     let text = parts.join("  ");
     if (mode.showLength) {
       if (!this.lengthCache || this.lengthCache.target !== target || this.lengthCache.modeId !== mode.id) {
+        // Settle any pending scroll patch first, for the same reason `doCopy`
+        // does: the clone must not carry an injected `scroll-margin` style,
+        // which would inflate the char count shown in the label.
+        this.scroller.flush();
         const output = mode.transform(this.inspector.capture(target));
         this.lengthCache = { target, modeId: mode.id, length: this.stringify(output).length };
       }
@@ -420,7 +425,7 @@ export class Robber {
       }
     });
 
-    this.notify("inspect:started");
+    this.notify(MessageType.Started);
   }
 
   private stop(reason: StopReason): void {
@@ -429,7 +434,7 @@ export class Robber {
 
     for (const [type, fn] of this.listeners) window.removeEventListener(type, fn, true);
     this.inspector.setInspecting(false);
-    // No scroll residue left behind on exit — eagerly, without waiting for the
+    // No scroll residue left behind on exit, eagerly, without waiting for the
     // pending animation frame.
     this.scroller.flush();
     this.target = null;
@@ -451,6 +456,6 @@ export class Robber {
       }
     }
 
-    this.notify("inspect:ended");
+    this.notify(MessageType.Ended);
   }
 }

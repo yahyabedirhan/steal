@@ -1,7 +1,7 @@
 /**
  * The swap point for "how do we bring a target into view."
  *
- * Fully independent of `Inspector` — a `Scroller` never references DOM-footprint
+ * Fully independent of `Inspector`. A `Scroller` never references DOM-footprint
  * tracking, and `Inspector` never references scrolling. `Robber` is the only
  * entity that holds both. Trying a different scrolling approach later
  * (`AncestorScroller`, sketched in the spec) is a one-line swap in `Robber`.
@@ -23,7 +23,7 @@ export interface Scroller {
    *
    * `Robber` calls this immediately before `Inspector.capture()` and on
    * `stop()`, so the live page never carries scroll-related residue by the time
-   * anything is cloned — which is what lets `Inspector` stay unaware a
+   * anything is cloned, which is what lets `Inspector` stay unaware a
    * `Scroller` exists.
    */
   flush(): void;

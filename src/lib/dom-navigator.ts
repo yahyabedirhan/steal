@@ -59,11 +59,11 @@ export class DomNavigator {
    * The element to move selection to for `direction`, or `null` when there is
    * nothing sensible there (no wrap-around).
    *
-   * - `up` — previous element sibling; the parent if there is none.
-   * - `down` — next element sibling; otherwise the nearest following element of
+   * - `up`: previous element sibling; the parent if there is none.
+   * - `down`: next element sibling; otherwise the nearest following element of
    *   an ancestor, so a lone child still steps forward instead of dead-ending.
-   * - `left` — parent element (stops above `<html>`).
-   * - `right` — first element child.
+   * - `left`: parent element (stops above `<html>`).
+   * - `right`: first element child.
    *
    * `skip` defaults to `isSkippable`; `Robber` passes one that also skips
    * Steal's own overlay nodes.

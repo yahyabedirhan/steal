@@ -5,7 +5,7 @@ import { plainText } from "./plain-text";
 /**
  * A copy mode: one entry in the "Full HTML / Clean HTML / Plain Text" picker.
  *
- * Duck-typed Strategy — a plain object, no base class. `transform` receives a
+ * Duck-typed Strategy: a plain object, no base class. `transform` receives a
  * fresh clone of the selected element (as produced by `Inspector.capture`) and
  * returns either a DOM node (Full HTML, Clean HTML) or a string directly
  * (Plain Text). The caller turns a returned node into text via `formatHTML`;
@@ -26,8 +26,8 @@ export interface Mode {
 }
 
 /**
- * The ordered mode registry. `Robber` and the label renderer both work only off
- * this array — adding a mode is adding a module and one entry here, nothing
- * else.
+ * The ordered mode registry. `Robber` and the label renderer are both driven by
+ * this array. Adding a mode is adding a module plus one entry here (a mode with
+ * a distinct hover-label glyph also needs an `ICONS` entry in `robber.ts`).
  */
 export const MODES: readonly Mode[] = [fullHtml, cleanHtml, plainText];
