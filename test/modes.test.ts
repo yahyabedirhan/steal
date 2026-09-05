@@ -100,3 +100,35 @@ test("Plain Text returns only the text, whitespace collapsed and trimmed", () =>
   const el = elementFor("<div>  Hello\n\n  <b>world</b>   !  </div>");
   expect(plainText.transform(el)).toBe("Hello world !");
 });
+
+test("Plain Text numbers the items of an ordered list", () => {
+  const el = elementFor("<ol><li>First</li><li>Second</li><li>Third</li></ol>");
+  expect(plainText.transform(el)).toBe("1. First\n2. Second\n3. Third");
+});
+
+test("Plain Text bullets the items of an unordered list", () => {
+  const el = elementFor("<ul><li>First</li><li>Second</li></ul>");
+  expect(plainText.transform(el)).toBe("- First\n- Second");
+});
+
+test("Plain Text keeps each list item's own text on one line", () => {
+  const el = elementFor(
+    '<ol class="mdx-ol">' +
+      '<li class="mdx-li"><div class="mdx-p"><strong>REST</strong> - uses standard\n  HTTP methods.</div></li>' +
+      '<li class="mdx-li"><div class="mdx-p"><strong>GraphQL</strong> - a single <span class="mdx-code">endpoint</span>.</div></li>' +
+      "</ol>",
+  );
+  expect(plainText.transform(el)).toBe(
+    "1. REST - uses standard HTTP methods.\n2. GraphQL - a single endpoint.",
+  );
+});
+
+test("Plain Text indents a nested list under its parent item", () => {
+  const el = elementFor("<ul><li>Fruit<ul><li>Apple</li><li>Pear</li></ul></li><li>Veg</li></ul>");
+  expect(plainText.transform(el)).toBe("- Fruit\n  - Apple\n  - Pear\n- Veg");
+});
+
+test("Plain Text surrounds a list with the paragraph text around it", () => {
+  const el = elementFor("<div><p>Protocols to know</p><ol><li>REST</li><li>gRPC</li></ol></div>");
+  expect(plainText.transform(el)).toBe("Protocols to know\n1. REST\n2. gRPC");
+});

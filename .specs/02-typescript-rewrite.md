@@ -354,6 +354,14 @@ BackgroundEntry receives MessageType.Ended -> badge cleared for that tab
   was raised directly; `00-steal.md` and `01-multi-format-copy.md` still
   describe the old fallback chain until the consolidation pass.
 
+- **Plain Text lists**: also added during implementation. Plain Text now keeps
+  list structure instead of collapsing everything to one run of whitespace.
+  Each `<li>` lands on its own line, numbered `1. `/`2. ` under `<ol>` and
+  bulleted `- ` under `<ul>`, with nested lists indented two spaces per level.
+  Non-list content is unchanged. Pure helpers in `modes/plain-text.ts`, covered
+  in `test/modes.test.ts`; `01-multi-format-copy.md`'s "just the text, no tags"
+  wording is folded into the consolidation pass.
+
 - **Comments**: `//`-block JSDoc becomes `/** */`, Markdown-formatted (short
   lead sentence, then a list or brief fenced example for genuinely multi-part
   rationale), staying brief rather than comprehensive — attaching to the new
