@@ -65,7 +65,7 @@ interface Session {
   mode: Mode;
 }
 
-interface Ui {
+interface UI {
   root: HTMLElement;
   overlay: HTMLElement;
   label: HTMLElement;
@@ -93,7 +93,7 @@ export class Robber {
   private session: Session | null = null;
   private target: Element | null = null;
   private lastMouse = { x: 0, y: 0 };
-  private ui: Ui | null = null;
+  private ui: UI | null = null;
   /**
    * Caches the transform+format cost by (target, mode): the overlay also
    * redraws on scroll/resize, where the target hasn't changed, so this keeps
@@ -131,7 +131,7 @@ export class Robber {
 
   // --- UI ----------------------------------------------------------------
 
-  private buildUi(): Ui {
+  private buildUI(): UI {
     const root = document.createElement("div");
     root.id = UI_ID;
     root.setAttribute("data-inspect-copy", "");
@@ -240,31 +240,21 @@ export class Robber {
 
   // --- Clipboard -------------------------------------------------------
 
-  private async copyText(text: string, owner: Session): Promise<boolean> {
+  /**
+   * The async Clipboard API is the only write path.
+   *
+   * The old `document.execCommand("copy")` textarea fallback is gone: it is
+   * deprecated, and a click/Enter handler in a secure context (which is where
+   * the picker is usable at all) already satisfies `writeText`'s user-gesture
+   * requirement. A rejection surfaces as the "Copy failed" toast, same as
+   * before.
+   */
+  private async copyText(text: string): Promise<boolean> {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch {
-      /* fall through to execCommand */
-    }
-    let ta: HTMLTextAreaElement | undefined;
-    try {
-      if (this.session !== owner) return false;
-      ta = document.createElement("textarea");
-      ta.value = text;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.top = "-1000px";
-      ta.style.opacity = "0";
-      this.ui!.root.appendChild(ta);
-      ta.select();
-      return document.execCommand("copy");
+      await navigator.clipboard.writeText(text);
+      return true;
     } catch {
       return false;
-    } finally {
-      if (ta) ta.remove();
     }
   }
 
@@ -277,7 +267,7 @@ export class Robber {
     const output = owner.mode.transform(this.inspector.capture(this.target));
     const html = this.stringify(output);
     owner.copying = true;
-    const ok = await this.copyText(html, owner);
+    const ok = await this.copyText(html);
     if (this.session !== owner) return; // This inspection ended while copying.
     owner.copying = false;
     if (ok) {
@@ -404,7 +394,7 @@ export class Robber {
   private start(): void {
     if (this.session) return;
     const owner: Session = (this.session = { copying: false, mode: this.modes[0] });
-    this.ui = this.buildUi();
+    this.ui = this.buildUI();
     this.target = null;
 
     for (const [type, fn] of this.listeners) window.addEventListener(type, fn, true);

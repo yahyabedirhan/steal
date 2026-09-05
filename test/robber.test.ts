@@ -75,7 +75,6 @@ function setup(
         }),
     },
   });
-  document.execCommand = () => false;
 
   const robber = new Robber({
     inspector: new Inspector(),
@@ -141,33 +140,25 @@ test("a copy completing after Escape and restart leaves the new inspection activ
   expect(app.writes.length).toBe(2);
 });
 
-test("a rejected old copy cannot start a fallback write in a new inspection", async () => {
+test("a rejected old copy cannot affect a new inspection", async () => {
   const app = setup();
-  let fallbackWrites = 0;
-  document.execCommand = () => {
-    fallbackWrites++;
-    return true;
-  };
   app.toggle();
   app.key("Enter");
   app.key("Escape");
   app.toggle();
   app.writes[0].reject(new Error("Denied"));
   await settle();
-  expect(fallbackWrites).toBe(0);
+  expect(document.querySelector(".ic-toast")).toBe(null);
   expect(app.messages.at(-1)).toBe("inspect:started");
 });
 
-test("a throwing fallback leaves no textarea behind and allows retry", async () => {
+test("a rejected copy leaves inspection running so it can be retried", async () => {
   const app = setup();
-  document.execCommand = () => {
-    throw new Error("Unavailable");
-  };
   app.toggle();
   app.key("Enter");
   app.writes[0].reject(new Error("Denied"));
   await settle();
-  expect(document.querySelector("textarea")).toBe(null);
+  expect(document.querySelector(".ic-toast")!.textContent).toBe("✕ Copy failed");
   app.key("Enter");
   app.writes[1].resolve();
   await settle();
@@ -294,20 +285,16 @@ test("ordinary page elements with Steal's ID are selectable and their clicks are
   expect(pageClicks).toBe(1);
 });
 
-test("the fallback writes the same page HTML when the primary clipboard is absent", async () => {
+test("a clipboard write that throws synchronously surfaces as a failed copy", async () => {
   const app = setup();
-  (navigator.clipboard as { writeText?: unknown }).writeText = undefined;
-  let copied: string | undefined;
-  document.execCommand = () => {
-    copied = (document.querySelector("textarea") as HTMLTextAreaElement).value;
-    return true;
+  navigator.clipboard.writeText = () => {
+    throw new Error("Blocked");
   };
   app.toggle();
   app.key("Enter");
   await settle();
-  expect(copied).toBe('<button id="pick">\n  Pick me\n</button>');
-  expect(document.querySelector("textarea")).toBe(null);
-  expect(app.messages.at(-1)).toBe("inspect:ended");
+  expect(document.querySelector(".ic-toast")!.textContent).toBe("✕ Copy failed");
+  expect(app.messages.at(-1)).toBe("inspect:started");
 });
 
 test("a digit key switches the active mode without copying or moving the target", () => {

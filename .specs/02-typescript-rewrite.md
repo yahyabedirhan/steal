@@ -345,6 +345,15 @@ BackgroundEntry receives MessageType.Ended -> badge cleared for that tab
   | `"inspect:toggle"`/`"inspect:started"`/`"inspect:ended"` (raw literals) | `MessageType.Toggle`/`.Started`/`.Ended` |
   | `isOwnNode` | `isExtensionNode` |
 
+- **Clipboard write**: the deprecated `document.execCommand("copy")` textarea
+  fallback was dropped during implementation. `navigator.clipboard.writeText`
+  is now the only write path; a click or Enter handler in a secure context
+  (the only context where the picker is usable) already meets its user-gesture
+  requirement, and a rejection still surfaces as the "Copy failed" toast. This
+  is the one deliberate behavior change in this pass, made after the deprecation
+  was raised directly; `00-steal.md` and `01-multi-format-copy.md` still
+  describe the old fallback chain until the consolidation pass.
+
 - **Comments**: `//`-block JSDoc becomes `/** */`, Markdown-formatted (short
   lead sentence, then a list or brief fenced example for genuinely multi-part
   rationale), staying brief rather than comprehensive — attaching to the new
