@@ -78,6 +78,31 @@ test("Clean HTML keeps a wrapper with more than one child", () => {
   ].join("\n"));
 });
 
+test("Clean HTML drops <style> tags even though their textContent is non-empty", () => {
+  const el = elementFor(
+    '<div><svg><style>@font-face { font-family: "X"; src: url(data:font/woff2;base64,AAAA); }</style><text>One</text><text>Two</text></svg></div>'
+  );
+  const out = cleanHtml.transform(el);
+  assert.equal(serialize(out), [
+    "<div>",
+    "  <svg>",
+    "    <text>",
+    "      One",
+    "    </text>",
+    "    <text>",
+    "      Two",
+    "    </text>",
+    "  </svg>",
+    "</div>",
+  ].join("\n"));
+});
+
+test("Clean HTML drops a wrapper that contains only a <style> tag", () => {
+  const el = elementFor('<div><style>body { color: red; }</style><p>Real content</p></div>');
+  const out = cleanHtml.transform(el);
+  assert.equal(serialize(out), ["<div>", "  <p>", "    Real content", "  </p>", "</div>"].join("\n"));
+});
+
 test("Plain Text returns only the text, whitespace collapsed and trimmed", () => {
   const el = elementFor("<div>  Hello\n\n  <b>world</b>   !  </div>");
   assert.equal(plainText.transform(el), "Hello world !");

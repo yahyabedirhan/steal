@@ -154,7 +154,11 @@ logic.
   case (e.g. `time` → `datetime`, if that comes up later) is a one-line
   addition, not a logic change. SVG elements are always removed as part of
   the no-text-subtree rule (or explicitly, if they ever contain non-empty
-  `<title>`/`<text>`); no SVG-specific allowlisting exists yet.
+  `<title>`/`<text>`); no SVG-specific allowlisting exists yet. `<style>` and
+  `<script>` elements never count as text content even though their
+  `textContent` is non-empty (an inline `<svg><style>` with embedded
+  `@font-face` base64 fonts was bloating captures by megabytes), so a
+  `<style>`-only SVG or wrapper is still dropped as textless.
 
 - **Format switching**: `content.js`'s `onKeyDown` gains a check for digit
   keys matching a format's `key`; on match it sets the session's active
