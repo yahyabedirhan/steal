@@ -234,10 +234,11 @@ animation frame:
 | | `finishScroll(el, change)` (private) |
 
 Its property-diffing math (compute the temporary margin, and the
-concurrent-edit-tolerant revert) is factored into pure functions in
-`src/lib/scroll/scroll-with-margin.ts` — `applyScrollMargin(el, marginPx)` and
-`restoreScrollMargin(el, change)` — with no `Map`, no timing, testable as
-plain input/output functions.
+concurrent-edit-tolerant revert) sits in the same file as pure functions,
+`applyScrollMargin(el, marginPx)` and `restoreScrollMargin(el, change)`, with no
+`Map`, no timing, testable as plain input/output functions. (These were briefly
+their own `scroll-with-margin.ts` module during implementation, then folded back
+into `margin-scroller.ts`.)
 
 **`AncestorScroller`** (not built this pass, interface-compatible sketch
 only, to confirm the seam actually accommodates a different algorithm):
@@ -314,8 +315,7 @@ BackgroundEntry receives MessageType.Ended -> badge cleared for that tab
       ├── messages.ts
       ├── scroll/
       │   ├── scroller.ts
-      │   ├── margin-scroller.ts
-      │   └── scroll-with-margin.ts
+      │   └── margin-scroller.ts   # class + the pure scroll-margin math
       ├── utils/
       │   └── format-html.ts
       └── modes/
@@ -334,7 +334,7 @@ BackgroundEntry receives MessageType.Ended -> badge cleared for that tab
   | Old | New |
   |---|---|
   | `lib/dom-nav.js` | `src/lib/dom-navigator.ts` (class `DomNavigator`) |
-  | `lib/page-content.js` | split into `src/lib/inspector.ts` (`Inspector`) + `src/lib/scroll/margin-scroller.ts` (`MarginScroller`) + `src/lib/scroll/scroll-with-margin.ts` |
+  | `lib/page-content.js` | split into `src/lib/inspector.ts` (`Inspector`) + `src/lib/scroll/margin-scroller.ts` (`MarginScroller` and the pure scroll-margin functions) |
   | `lib/serialize.js` (`serialize()`) | `src/lib/utils/format-html.ts` (`formatHTML()`) |
   | `lib/formats/` | `src/lib/modes/` |
   | `lib/formats/formats.js` | `src/lib/modes/modes.ts` |
@@ -375,8 +375,7 @@ coverage along the new module boundaries:
 | `test/serialize.test.js` | `test/format-html.test.ts` |
 | `test/formats.test.js` | `test/modes.test.ts` |
 | `test/content.test.js` | splits: `test/robber.test.ts` (state machine, `chrome.*` mocked at the constructor callbacks, `inspector`/`scroller` mocked at their own interfaces, same as today's jsdom-driven input tests) + `test/inspector.test.ts` (extension-node/capture behavior, no `chrome` mock and no scroll mock needed at all now) |
-| (new) | `test/scroll/scroll-with-margin.test.ts` — pure `applyScrollMargin`/`restoreScrollMargin`, dependency-free |
-| (new) | `test/scroll/margin-scroller.test.ts` — the `Map`/timing/`flush()` behavior |
+| (new) | `test/scroll/margin-scroller.test.ts` — the `Map`/timing/`flush()` behavior plus the pure `applyScrollMargin`/`restoreScrollMargin` functions |
 
 `AncestorScroller` isn't implemented this pass, so it has no tests yet.
 `MessageType` is a plain const object with no behavior of its own and doesn't
@@ -395,7 +394,7 @@ easy to accidentally drop.
 - HMR / auto-reload dev tooling.
 - Implementing `AncestorScroller` (interface only).
 - Populating `src/lib/utils/` beyond `format-html.ts`, or `src/lib/scroll/`
-  beyond `scroller.ts`, `margin-scroller.ts`, and `scroll-with-margin.ts`.
+  beyond `scroller.ts` and `margin-scroller.ts`.
 - Chrome Web Store publication (already out of scope per `00-steal.md`).
 
 ## Further Notes
