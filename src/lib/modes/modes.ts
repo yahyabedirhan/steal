@@ -4,12 +4,13 @@ import { plainText } from "./plain-text";
 import { markdown } from "./markdown";
 
 /**
- * A copy mode: one entry in the "Full HTML / Clean HTML / Plain Text" picker.
+ * A copy mode: one entry in the number-key picker (Full HTML, Clean HTML, Plain
+ * Text, Markdown).
  *
  * Duck-typed Strategy: a plain object, no base class. `transform` receives a
  * fresh clone of the selected element (as produced by `Inspector.capture`) and
- * returns either a DOM node (Full HTML, Clean HTML) or a string directly
- * (Plain Text). The caller turns a returned node into text via `formatHTML`;
+ * returns either a DOM node (Full HTML, Clean HTML) or a string directly (Plain
+ * Text, Markdown). The caller turns a returned node into text via `formatHTML`;
  * a returned string is used as-is.
  */
 export interface Mode {

@@ -5,9 +5,9 @@ import { INLINE_TAGS, collapseWhitespace, isNeverContent } from "../utils/html-t
 /**
  * Markdown: best-effort HTML-to-Markdown for pulling a page section into notes.
  *
- * The guiding rule from the design session: convert only what an HTML *tag*
- * guarantees with certainty (headings, emphasis, code, links, images, lists,
- * blockquotes, rules) and drop information that lives only in CSS classes. The
+ * The guiding rule: convert only what an HTML *tag* guarantees with certainty
+ * (headings, emphasis, code, links, images, lists, blockquotes, rules) and drop
+ * information that lives only in CSS classes. The
  * one deliberate class-based exception is `mdx-code`, the inline-code marker
  * HelloInterview's MDX renderer puts on a `<span>` rather than a `<code>`.
  *

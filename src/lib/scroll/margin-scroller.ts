@@ -1,8 +1,8 @@
 import type { Scroller, ScrollAlignment } from "./scroller";
 
 /**
- * The only `Scroller` shipped this pass: a temporary `scroll-margin` patch that
- * self-cleans on the next animation frame.
+ * A `Scroller` backed by a temporary `scroll-margin` patch that self-cleans on
+ * the next animation frame.
  *
  * The browser's own `Element.scrollIntoView` walks to the nearest scrollable
  * ancestor (a plain `window.scrollBy` would miss elements inside a scroll

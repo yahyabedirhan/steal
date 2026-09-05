@@ -9,10 +9,10 @@ import { INLINE_TAGS, collapseWhitespace, isNeverContent } from "../utils/html-t
  * `<style>` / `<script>` text is dropped, the same "never content" rule Clean
  * HTML uses. Blocks are joined with a single `\n`.
  *
- * Lists keep the richer shape they shipped with as a follow-on to 01: every
- * `<li>` on its own line, numbered `1. ` under an `<ol>` and bulleted `- `
- * under a `<ul>`, nested lists indented two spaces per level. `renderList` is
- * exported so the Markdown mode can reuse the exact same structure.
+ * Lists keep a richer shape: every `<li>` on its own line, numbered `1. ` under
+ * an `<ol>` and bulleted `- ` under a `<ul>`, nested lists indented two spaces
+ * per level. `renderList` is exported so the Markdown mode can reuse the exact
+ * same structure.
  */
 
 const LIST_TAGS = new Set(["UL", "OL"]);

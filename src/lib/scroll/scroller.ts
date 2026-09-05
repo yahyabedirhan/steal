@@ -3,8 +3,9 @@
  *
  * Fully independent of `Inspector`. A `Scroller` never references DOM-footprint
  * tracking, and `Inspector` never references scrolling. `Robber` is the only
- * entity that holds both. Trying a different scrolling approach later
- * (`AncestorScroller`, sketched in the spec) is a one-line swap in `Robber`.
+ * entity that holds both. Trying a different scrolling approach later (say one
+ * that scrolls a scrollable ancestor rather than patching the target) is a
+ * one-line swap in `Robber`.
  */
 
 export interface ScrollAlignment {

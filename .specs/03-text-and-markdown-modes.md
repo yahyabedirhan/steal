@@ -1,6 +1,6 @@
 # 03 - Structured Text and Markdown Modes
 
-Status: proposed
+Status: implemented
 Last updated: 2026-09-05
 
 Builds on [00-steal.md](./00-steal.md), [01-multi-format-copy.md](./01-multi-format-copy.md),

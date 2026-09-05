@@ -24,7 +24,7 @@ abstraction).
   say "format" instead of "mode" and describe the current plain-JS
   implementation. This is intentional, not staleness — see "Explicitly
   deferred" below.
-- **Prior architecture handoff**: [`.handoff/01-architecture.md`](01-architecture.md)
+- **Prior architecture handoff**: [`.handoff/2026-09-03-architecture-review.md`](2026-09-03-architecture-review.md)
   — recorded "Keep plain JavaScript and the no-build packaging" as a settled
   decision. This session's spec explicitly supersedes that one line; nothing
   else in that handoff is invalidated.

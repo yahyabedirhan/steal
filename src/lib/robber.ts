@@ -245,11 +245,10 @@ export class Robber {
   /**
    * The async Clipboard API is the only write path.
    *
-   * The old `document.execCommand("copy")` textarea fallback is gone: it is
-   * deprecated, and a click/Enter handler in a secure context (which is where
-   * the picker is usable at all) already satisfies `writeText`'s user-gesture
-   * requirement. A rejection surfaces as the "Copy failed" toast, same as
-   * before.
+   * A click or Enter handler in a secure context (the only place the element
+   * picker is usable at all) already satisfies `writeText`'s user-gesture
+   * requirement, so no `document.execCommand` fallback is needed. A rejection
+   * surfaces as the "Copy failed" toast.
    */
   private async copyText(text: string): Promise<boolean> {
     try {
