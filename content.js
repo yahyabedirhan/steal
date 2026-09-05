@@ -1,6 +1,6 @@
 // Injected on demand by background.js. Runs an inspect mode: highlight the
 // element under the cursor (or reachable by arrow keys), and on click / Enter
-// copy its raw outerHTML to the clipboard, then exit.
+// copy its page HTML to the clipboard, then exit.
 
 (() => {
   const UI_ID = "__inspect_copy_ui";
@@ -18,7 +18,8 @@
   // --- Controller ----------------------------------------------------------
 
   const controller = (() => {
-    let active = false;
+    const page = window.__inspectCopyPage.createPageContent();
+    let session = null;
     let target = null;
     let lastMouse = { x: 0, y: 0 };
     let ui = null; // { root, overlay, label }
@@ -36,12 +37,12 @@
 
       root.appendChild(overlay);
       root.appendChild(label);
-      (document.body || document.documentElement).appendChild(root);
+      page.mount(root);
       return { root, overlay, label };
     }
 
     function isOwnNode(el) {
-      return !!(el && el.closest && el.closest("#" + UI_ID));
+      return page.isOwnNode(el);
     }
 
     // Arrow navigation skips document metadata (via isSkippable) and the
@@ -95,7 +96,7 @@
       }, 1200);
     }
 
-    async function copyText(text) {
+    async function copyText(text, owner) {
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(text);
@@ -104,9 +105,10 @@
       } catch (e) {
         /* fall through to execCommand */
       }
+      let ta;
       try {
-        if (!ui) return false;
-        const ta = document.createElement("textarea");
+        if (session !== owner) return false;
+        ta = document.createElement("textarea");
         ta.value = text;
         ta.setAttribute("readonly", "");
         ta.style.position = "fixed";
@@ -114,20 +116,23 @@
         ta.style.opacity = "0";
         ui.root.appendChild(ta);
         ta.select();
-        const ok = document.execCommand("copy");
-        ta.remove();
-        return ok;
+        return document.execCommand("copy");
       } catch (e) {
         return false;
+      } finally {
+        if (ta) ta.remove();
       }
     }
 
     async function doCopy(originX, originY) {
-      if (!target || !ui) return;
+      if (!target || !session || session.copying) return;
+      const owner = session;
       const desc = describeElement(target);
-      const html = target.outerHTML;
-      const ok = await copyText(html);
-      if (!ui) return; // exited mid-copy (Esc)
+      const html = page.capture(target);
+      owner.copying = true;
+      const ok = await copyText(html, owner);
+      if (session !== owner) return; // This inspection ended while copying.
+      owner.copying = false;
       if (ok) {
         showToast("Copied " + desc, originX, originY, false);
         // Let the toast render, then exit.
@@ -222,17 +227,9 @@
       const tallerThanViewport = r.height + SCROLL_MARGIN * 2 > vh;
       const toEnd = below && !above && !tallerThanViewport;
 
-      const el = target;
-      const prevTop = el.style.scrollMarginTop;
-      const prevBottom = el.style.scrollMarginBottom;
-      el.style.scrollMarginTop = SCROLL_MARGIN + "px";
-      el.style.scrollMarginBottom = SCROLL_MARGIN + "px";
-      el.scrollIntoView({ block: toEnd ? "end" : "start", inline: "nearest" });
-      requestAnimationFrame(() => {
-        el.style.scrollMarginTop = prevTop;
-        el.style.scrollMarginBottom = prevBottom;
-        drawOverlay();
-      });
+      page.scrollIntoView(target, { block: toEnd ? "end" : "start", inline: "nearest" }, SCROLL_MARGIN);
+      const owner = session;
+      requestAnimationFrame(() => { if (session === owner) drawOverlay(); });
     }
 
     function onScrollOrResize() {
@@ -253,13 +250,13 @@
     ];
 
     function start() {
-      if (active) return;
-      active = true;
+      if (session) return;
+      session = { copying: false };
       ui = buildUi();
       target = null;
 
       for (const [type, fn] of LISTENERS) window.addEventListener(type, fn, true);
-      document.documentElement.classList.add("ic-active");
+      page.setInspecting(true);
 
       // Seed the target from the current pointer position if we can.
       const el = document.elementFromPoint(lastMouse.x, lastMouse.y);
@@ -269,11 +266,11 @@
     }
 
     function stop(reason) {
-      if (!active) return;
-      active = false;
+      if (!session) return;
+      session = null;
 
       for (const [type, fn] of LISTENERS) window.removeEventListener(type, fn, true);
-      document.documentElement.classList.remove("ic-active");
+      page.setInspecting(false);
       target = null;
 
       const root = ui && ui.root;
@@ -305,11 +302,11 @@
     }
 
     function toggle() {
-      if (active) stop("toggle");
+      if (session) stop("toggle");
       else start();
     }
 
-    return { toggle, start, stop, isActive: () => active };
+    return { toggle };
   })();
 
   window.__inspectCopyController = controller;
