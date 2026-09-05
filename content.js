@@ -19,10 +19,21 @@
     return output && output.nodeType === 1 ? serialize(output) : output;
   }
 
+  // Paint (fill/stroke/etc.) is set in content.css, not here — a plain
+  // attribute here would lose to the "all: initial" reset every element
+  // under #__inspect_copy_ui gets, same as any other CSS property.
+  //
+  // Geometry (d, cx/cy/r) is a plain attribute AND set again inline via
+  // `style`: Chrome treats these as CSS properties too, and "all: initial"
+  // resets them like anything else — but unlike paint, the shape differs
+  // per icon, so each is repeated inline here rather than shared in
+  // content.css. Inline style beats any external rule regardless of
+  // specificity, so this survives the reset without it (or the rules that
+  // depend on its specificity) needing to change at all.
   const ICONS = {
-    "full-html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 12l5 7M16 5l5 7-5 7"/></svg>',
-    "clean-html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 12l5 7M16 5l5 7-5 7"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>',
-    "plain-text": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M12 6v13"/></svg>',
+    "full-html": '<svg viewBox="0 0 24 24"><path d="M8 5 3 12l5 7M16 5l5 7-5 7" style="d:path(\'M8 5 3 12l5 7M16 5l5 7-5 7\')"/></svg>',
+    "clean-html": '<svg viewBox="0 0 24 24"><path d="M8 5 3 12l5 7M16 5l5 7-5 7" style="d:path(\'M8 5 3 12l5 7M16 5l5 7-5 7\')"/><circle class="ic-icon-dot" cx="12" cy="12" r="1.6" style="cx:12px;cy:12px;r:1.6px"/></svg>',
+    "plain-text": '<svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" style="d:path(\'M5 6h14M12 6v13\')"/></svg>',
   };
 
   // --- Double-init guard -----------------------------------------------------
