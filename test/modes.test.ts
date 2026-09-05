@@ -1,0 +1,102 @@
+import { test, expect } from "vitest";
+import { formatHTML } from "../src/lib/utils/format-html";
+import { fullHtml } from "../src/lib/modes/full-html";
+import { cleanHtml } from "../src/lib/modes/clean-html";
+import { plainText } from "../src/lib/modes/plain-text";
+import { MODES } from "../src/lib/modes/modes";
+
+function elementFor(html: string): Element {
+  document.body.innerHTML = html;
+  return document.body.firstElementChild!;
+}
+
+const serialize = (out: Element | string) => (typeof out === "string" ? out : formatHTML(out));
+
+test("the registry lists exactly the three shipped modes, in key order", () => {
+  expect(MODES.map((m) => m.id)).toEqual(["full-html", "clean-html", "plain-text"]);
+  expect(MODES.map((m) => m.key)).toEqual(["1", "2", "3"]);
+});
+
+test("Full HTML transform is the identity", () => {
+  const el = elementFor('<div class="a b">Hi</div>');
+  expect(fullHtml.transform(el)).toBe(el);
+});
+
+test("Clean HTML drops every attribute except the allowlisted ones", () => {
+  const el = elementFor(
+    '<div class="card" data-x="1"><img class="icon" src="a.png" alt="An icon"><a class="link" href="/x" target="_blank">Go</a></div>',
+  );
+  expect(serialize(cleanHtml.transform(el))).toBe(
+    ["<div>", '  <img src="a.png" alt="An icon">', '  <a href="/x">Go</a>', "</div>"].join("\n"),
+  );
+});
+
+test("Clean HTML drops any subtree with no text anywhere in it", () => {
+  const el = elementFor(
+    '<div><button aria-label="Report"><svg><path d="M0 0"></path></svg></button><p>Real content</p></div>',
+  );
+  expect(serialize(cleanHtml.transform(el))).toBe(
+    ["<div>", "  <p>", "    Real content", "  </p>", "</div>"].join("\n"),
+  );
+});
+
+test("Clean HTML never drops the root itself, even if it has no text", () => {
+  const el = elementFor("<button><svg></svg></button>");
+  expect(serialize(cleanHtml.transform(el))).toBe("<button></button>");
+});
+
+test("Clean HTML unwraps a chain of textless single-child wrappers", () => {
+  const el = elementFor('<div class="a"><div class="b"><div class="c"><p>Text</p></div></div></div>');
+  expect(serialize(cleanHtml.transform(el))).toBe(
+    ["<div>", "  <p>", "    Text", "  </p>", "</div>"].join("\n"),
+  );
+});
+
+test("a wrapper is kept once it has its own direct text, but its still-wrapper child is unwrapped", () => {
+  const el = elementFor('<div class="a">Label<span class="only"><em>child</em></span></div>');
+  expect(serialize(cleanHtml.transform(el))).toBe("<div>\n  Label<em>child</em>\n</div>");
+});
+
+test("an image with no caption keeps its wrapper alive", () => {
+  const el = elementFor('<div class="card"><img class="icon" src="a.png"></div>');
+  expect(serialize(cleanHtml.transform(el))).toBe('<div>\n  <img src="a.png">\n</div>');
+});
+
+test("Clean HTML keeps a wrapper with more than one child", () => {
+  const el = elementFor('<div class="a"><p>One</p><p>Two</p></div>');
+  expect(serialize(cleanHtml.transform(el))).toBe(
+    ["<div>", "  <p>", "    One", "  </p>", "  <p>", "    Two", "  </p>", "</div>"].join("\n"),
+  );
+});
+
+test("Clean HTML drops <style> tags even though their textContent is non-empty", () => {
+  const el = elementFor(
+    '<div><svg><style>@font-face { font-family: "X"; src: url(data:font/woff2;base64,AAAA); }</style><text>One</text><text>Two</text></svg></div>',
+  );
+  expect(serialize(cleanHtml.transform(el))).toBe(
+    [
+      "<div>",
+      "  <svg>",
+      "    <text>",
+      "      One",
+      "    </text>",
+      "    <text>",
+      "      Two",
+      "    </text>",
+      "  </svg>",
+      "</div>",
+    ].join("\n"),
+  );
+});
+
+test("Clean HTML drops a wrapper that contains only a <style> tag", () => {
+  const el = elementFor('<div><style>body { color: red; }</style><p>Real content</p></div>');
+  expect(serialize(cleanHtml.transform(el))).toBe(
+    ["<div>", "  <p>", "    Real content", "  </p>", "</div>"].join("\n"),
+  );
+});
+
+test("Plain Text returns only the text, whitespace collapsed and trimmed", () => {
+  const el = elementFor("<div>  Hello\n\n  <b>world</b>   !  </div>");
+  expect(plainText.transform(el)).toBe("Hello world !");
+});

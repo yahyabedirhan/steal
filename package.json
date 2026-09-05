@@ -2,12 +2,22 @@
   "name": "steal",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Steal — Chrome MV3 extension: point at an element and copy its outerHTML.",
   "scripts": {
-    "test": "node --test",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && vite build --mode content && vite build --mode background",
+    "dev": "npm run clean && (vite build --watch --mode content & vite build --watch --mode background & wait)",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "gen-icons": "python3 tools/gen-icons.py"
   },
   "devDependencies": {
-    "jsdom": "^27.0.0"
+    "@types/chrome": "^0.0.270",
+    "jsdom": "^27.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vite-plugin-static-copy": "^2.1.0",
+    "vitest": "^2.1.4"
   }
 }
